@@ -1,23 +1,34 @@
-const express = require("express");
-const cors = require("cors");
-const connectDB = require("./config/db");
 require("dotenv").config();
+const express = require("express");
+const mongoose = require("mongoose");
+const passport = require("passport");
+const session = require("express-session");
+const cors = require("cors");
+
+require("./config/passport");
 
 const app = express();
 
-// connect database
-connectDB();
+app.use(cors({
+  origin: "http://localhost:3000",
+  credentials: true
+}));
 
-// middleware
-app.use(cors());
-app.use(express.json());
+app.use(session({
+  secret: "campusconnectsecret",
+  resave: false,
+  saveUninitialized: false
+}));
 
-app.get("/", (req, res) => {
-  res.send("CampusConnect Backend Running 🚀");
-});
+app.use(passport.initialize());
+app.use(passport.session());
 
-const PORT = process.env.PORT || 5000;
+mongoose.connect("mongodb://127.0.0.1:27017/campus-connect")
+  .then(() => console.log("MongoDB Connected"));
 
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+app.use("/auth", require("./routes/auth"));
+app.use("/api", require("./routes/user"));
+
+app.listen(5000, () => {
+  console.log("Server running on http://localhost:5000");
 });
