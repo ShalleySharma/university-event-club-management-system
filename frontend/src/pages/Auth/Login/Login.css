@@ -1,0 +1,62 @@
+.login-container {
+  height: 100vh;
+  background: linear-gradient(135deg, #f4f6f9, #e8eef7);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.login-card {
+  width: 360px;
+  background: #fff;
+  padding: 30px;
+  border-radius: 12px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+  text-align: center;
+}
+
+.login-title {
+  margin-bottom: 20px;
+  color: #1f3c88;
+}
+
+.login-card input {
+  width: 100%;
+  padding: 12px;
+  margin-bottom: 14px;
+  border-radius: 8px;
+  border: 1px solid #d1d9e6;
+  background: #f9fafc;
+}
+
+.login-btn {
+  width: 100%;
+  padding: 12px;
+  background: #1f3c88;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  opacity: 0.5;
+}
+
+.divider {
+  margin: 18px 0;
+  color: #999;
+}
+
+.microsoft-btn {
+  width: 100%;
+  padding: 12px;
+  border: 1px solid #d1d9e6;
+  border-radius: 8px;
+  background: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  cursor: pointer;
+}
+
+.microsoft-btn img {
+  width: 20px;
+}
