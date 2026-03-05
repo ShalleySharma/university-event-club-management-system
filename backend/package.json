@@ -19,7 +19,8 @@
     "jsonwebtoken": "^9.0.3",
     "mongoose": "^9.1.6",
     "passport": "^0.7.0",
-    "passport-azure-ad": "^4.3.5"
+    "passport-azure-ad": "^4.3.5",
+    "passport-microsoft": "^2.1.0"
   },
   "devDependencies": {
     "nodemon": "^3.1.11"

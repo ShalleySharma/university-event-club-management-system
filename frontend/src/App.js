@@ -1,40 +1,33 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import { useEffect, useState } from "react";
+import { useContext } from "react";
+import { AuthContext, AuthProvider } from "./context/AuthContext";
 import Login from "./pages/Auth/Login/Login.jsx";
 import Dashboard from "./pages/Dashboard/Dashboard.jsx";
+import AuthSuccess from "./pages/Auth/AuthSuccess.jsx";
+import Landing from "./pages/Landing/Landing.jsx";
 
 const ProtectedRoute = ({ children }) => {
-  const [isAuthenticated, setIsAuthenticated] = useState(null);
+  const { user } = useContext(AuthContext);
 
-  useEffect(() => {
-    fetch("http://localhost:5000/api/me", {
-      credentials: "include"
-    })
-      .then(res => {
-        if (res.ok) {
-          setIsAuthenticated(true);
-        } else {
-          setIsAuthenticated(false);
-        }
-      })
-      .catch(() => setIsAuthenticated(false));
-  }, []);
-
-  if (isAuthenticated === null) {
-    return <div>Loading...</div>;
+  if (!user) {
+    return <Navigate to="/" />;
   }
 
-  return isAuthenticated ? children : <Navigate to="/" />;
+  return children;
 };
 
 function App() {
   return (
-    <BrowserRouter>
-      <Routes>
-        <Route path="/" element={<Login />} />
-        <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
-      </Routes>
-    </BrowserRouter>
+    <AuthProvider>
+      <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+        <Routes>
+          <Route path="/" element={<Landing />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="/auth/success" element={<AuthSuccess />} />
+          <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+        </Routes>
+      </BrowserRouter>
+    </AuthProvider>
   );
 }
 
