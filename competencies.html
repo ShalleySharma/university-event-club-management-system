@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Compétences - Auto-évaluation</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+            padding: 40px;
+        }
+        
+        h1 {
+            color: #333;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+        
+        .competency-block {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 25px;
+            margin-bottom: 25px;
+            border-left: 4px solid #667eea;
+        }
+        
+        .block-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        
+        .block-number {
+            background: #667eea;
+            color: white;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            margin-right: 15px;
+        }
+        
+        .block-header h3 {
+            color: #333;
+            font-size: 1.3em;
+        }
+        
+        .competency-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+        }
+        
+        .competency-item {
+            background: white;
+            padding: 15px;
+            border-radius: 6px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        }
+        
+        .competency-item label {
+            display: block;
+            margin-bottom: 8px;
+            color: #555;
+            font-weight: 500;
+        }
+        
+        .competency-item select,
+        .competency-item textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+            font-family: inherit;
+        }
+        
+        .competency-item textarea {
+            resize: vertical;
+        }
+        
+        .competency-item select:focus,
+        .competency-item textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Évaluation des Compétences</h1>
+        
+        <!-- Self-assessment Section - Updated to match competency-block format -->
+        <div class="competency-block">
+            <div class="block-header">
+                <div class="block-number">07</div>
+                <h3>Auto-évaluation Globale</h3>
+            </div>
+            <div class="competency-grid">
+                <div class="competency-item">
+                    <label for="self-rating">Notez-vous globalement :</label>
+                    <select id="self-rating" name="self-rating">
+                        <option value="">Sélectionnez une note</option>
+                        <option value="1">1 - Très faible</option>
+                        <option value="2">2 - Faible</option>
+                        <option value="3">3 - Moyen</option>
+                        <option value="4">4 - Bon</option>
+                        <option value="5">5 - Excellent</option>
+                    </select>
+                </div>
+                <div class="competency-item">
+                    <label for="self-comment">Commentaires personnels :</label>
+                    <textarea id="self-comment" name="self-comment" rows="4" placeholder="Écrivez vos commentaires ici..."></textarea>
+                </div>
+                <div class="competency-item">
+                    <label for="strengths">Points forts identifiés :</label>
+                    <textarea id="strengths" name="strengths" rows="3" placeholder="Listez vos points forts..."></textarea>
+                </div>
+                <div class="competency-item">
+                    <label for="improvements">Axes d'amélioration :</label>
+                    <textarea id="improvements" name="improvements" rows="3" placeholder="Listez les axes d'amélioration..."></textarea>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

@@ -1,16 +1,117 @@
+import React, { useState, useContext } from "react";
+import { useNavigate } from "react-router-dom";
+import { AuthContext } from "../../../context/AuthContext";
+import "./Login.css";
+
 const Login = () => {
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+  const { login } = useContext(AuthContext);
+  const navigate = useNavigate();
+
   const handleMicrosoftLogin = () => {
-    window.location.href = "http://localhost:5000/auth/microsoft";
+    window.location.href = "http://localhost:5000/api/auth/microsoft";
+  };
+
+  const handleEmailLogin = async (e) => {
+    e.preventDefault();
+    setError("");
+    setLoading(true);
+
+    try {
+      const response = await fetch("http://localhost:5000/api/auth/login", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ email, password })
+      });
+
+      const data = await response.json();
+
+      console.log("Login response:", response.status, data);
+
+      if (response.ok) {
+        login(data.token, data.user.role);
+        
+        // Redirect based on role
+        navigate("/dashboard");
+      } else {
+        setError(data.message || "Login failed. Please try again.");
+      }
+    } catch (err) {
+      setError("Network error. Please check if the server is running.");
+      console.error("Login error:", err);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
-    <div style={{ textAlign: "center", marginTop: "100px" }}>
-      <h2>Campus Connect</h2>
-      <p>Login with your college Microsoft ID</p>
+    <div className="login-container">
+      <div className="login-box">
+        <div className="login-header">
+          <h1>🎓 Campus Connect</h1>
+          <p>Login with your college credentials</p>
+        </div>
 
-      <button onClick={handleMicrosoftLogin}>
-        Sign in with Microsoft
-      </button>
+        {/* Microsoft Login Button */}
+        <button className="microsoft-btn" onClick={handleMicrosoftLogin}>
+          <svg width="21" height="21" viewBox="0 0 21 21" xmlns="http://www.w3.org/2000/svg">
+            <rect x="1" y="1" width="9" height="9" fill="#f25022"/>
+            <rect x="11" y="1" width="9" height="9" fill="#7fba00"/>
+            <rect x="1" y="11" width="9" height="9" fill="#00a4ef"/>
+            <rect x="11" y="11" width="9" height="9" fill="#ffb900"/>
+          </svg>
+          Sign in with Microsoft
+        </button>
+
+        <div className="divider">
+          <span>or</span>
+        </div>
+
+        {/* Email/Password Login Form */}
+        <form onSubmit={handleEmailLogin}>
+          <div className="form-group">
+            <label htmlFor="email">College Email</label>
+            <input
+              type="email"
+              id="email"
+              placeholder="your.email@krmangalam.edu.in"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+              autoComplete="email"
+            />
+          </div>
+
+          <div className="form-group">
+            <label htmlFor="password">Password</label>
+            <input
+              type="password"
+              id="password"
+              placeholder="Enter your password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+              autoComplete="current-password"
+            />
+          </div>
+
+          {error && <div className="error-message">{error}</div>}
+
+          <button type="submit" className="login-btn" disabled={loading}>
+            {loading ? "Logging in..." : "Login with Email"}
+          </button>
+        </form>
+
+        <div className="login-footer">
+          <p>Use your college email to login:</p>
+          <p className="email-hint">@krmangalam.edu.in or @krmu.edu.in</p>
+        </div>
+      </div>
     </div>
   );
 };

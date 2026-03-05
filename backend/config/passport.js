@@ -5,9 +5,16 @@ const User = require("../models/User");
 passport.use(
   new MicrosoftStrategy(
     {
-      clientID: process.env.MICROSOFT_CLIENT_ID,
+      clientID: process.env.AZURE_CLIENT_ID,
       clientSecret: process.env.MICROSOFT_CLIENT_SECRET,
       callbackURL: process.env.MICROSOFT_CALLBACK_URL,
+      tenant: process.env.AZURE_TENANT_ID || "common",
+      authorizationURL: process.env.AZURE_TENANT_ID
+        ? `https://login.microsoftonline.com/${process.env.AZURE_TENANT_ID}/oauth2/v2.0/authorize`
+        : "https://login.microsoftonline.com/common/oauth2/v2.0/authorize",
+      tokenURL: process.env.AZURE_TENANT_ID
+        ? `https://login.microsoftonline.com/${process.env.AZURE_TENANT_ID}/oauth2/v2.0/token`
+        : "https://login.microsoftonline.com/common/oauth2/v2.0/token",
       scope: ["user.read"]
     },
     async (accessToken, refreshToken, profile, done) => {

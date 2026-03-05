@@ -4,13 +4,39 @@ export const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const token = localStorage.getItem('token');
-    const role = localStorage.getItem('role');
-    if (token && role) {
-      setUser({ token, role });
-    }
+    const validateToken = async () => {
+      const token = localStorage.getItem('token');
+      const role = localStorage.getItem('role');
+
+      if (token && role) {
+        try {
+          // Validate token by making a request to /api/me
+          const response = await fetch("http://localhost:5000/api/me", {
+            headers: {
+              'Authorization': `Bearer ${token}`
+            }
+          });
+
+          if (response.ok) {
+            setUser({ token, role });
+          } else {
+            // Token is invalid, clear it
+            localStorage.removeItem('token');
+            localStorage.removeItem('role');
+          }
+        } catch (error) {
+          // Network error or other issue, clear token
+          localStorage.removeItem('token');
+          localStorage.removeItem('role');
+        }
+      }
+      setLoading(false);
+    };
+
+    validateToken();
   }, []);
 
   const login = (token, role) => {
