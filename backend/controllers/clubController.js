@@ -2,13 +2,17 @@ const Club = require("../models/Club");
 const User = require("../models/User");
 const RoleRequest = require("../models/RoleRequest");
 
+// Create club (teachers, club heads and admins)
 exports.createClub = async (req, res) => {
   try {
-    const { name, description } = req.body;
+    const { name, description, category, logo } = req.body;
 
     const club = await Club.create({
       name,
       description,
+      category: category || "General",
+      logo: logo || "",
+      facultyCoordinator: req.user.id,
       createdBy: req.user.id
     });
 
@@ -20,7 +24,142 @@ exports.createClub = async (req, res) => {
     if (err.code === 11000) {
       return res.status(400).json({ message: "Club name already exists" });
     }
-    res.status(500).json({ message: "Server error" });
+    res.status(500).json({ message: "Server error: " + err.message });
+  }
+};
+
+// Get teacher's clubs (clubs created by the teacher)
+exports.getTeacherClubs = async (req, res) => {
+  try {
+    const clubs = await Club.find({ createdBy: req.user.id })
+      .populate("createdBy", "name email")
+      .populate("facultyCoordinator", "name email")
+      .sort({ createdAt: -1 });
+    
+    res.json(clubs);
+  } catch (err) {
+    res.status(500).json({ message: "Server error: " + err.message });
+  }
+};
+
+// Update club
+exports.updateClub = async (req, res) => {
+  try {
+    const { clubId } = req.params;
+    const { name, description, category, logo } = req.body;
+
+    const club = await Club.findById(clubId);
+
+    if (!club) {
+      return res.status(404).json({ message: "Club not found" });
+    }
+
+    // Check if user is the creator or admin
+    if (club.createdBy.toString() !== req.user.id && req.user.role !== "admin") {
+      return res.status(403).json({ message: "You can only update your own clubs" });
+    }
+
+    // Update fields
+    if (name) club.name = name;
+    if (description) club.description = description;
+    if (category) club.category = category;
+    if (logo !== undefined) club.logo = logo;
+
+    await club.save();
+
+    res.json({
+      message: "Club updated successfully",
+      club
+    });
+  } catch (err) {
+    res.status(500).json({ message: "Server error: " + err.message });
+  }
+};
+
+// Delete club
+exports.deleteClub = async (req, res) => {
+  try {
+    const { clubId } = req.params;
+
+    const club = await Club.findById(clubId);
+
+    if (!club) {
+      return res.status(404).json({ message: "Club not found" });
+    }
+
+    // Check if user is the creator or admin
+    if (club.createdBy.toString() !== req.user.id && req.user.role !== "admin") {
+      return res.status(403).json({ message: "You can only delete your own clubs" });
+    }
+
+    await Club.findByIdAndDelete(clubId);
+
+    res.json({ message: "Club deleted successfully" });
+  } catch (err) {
+    res.status(500).json({ message: "Server error: " + err.message });
+  }
+};
+
+// Get single club details with members and events
+exports.getClubDetails = async (req, res) => {
+  try {
+    const { clubId } = req.params;
+
+    const club = await Club.findById(clubId)
+      .populate("createdBy", "name email")
+      .populate("facultyCoordinator", "name email")
+      .populate("members", "name email");
+
+    if (!club) {
+      return res.status(404).json({ message: "Club not found" });
+    }
+
+    // Get events for this club
+    const Event = require("../models/Event");
+    const events = await Event.find({ club: clubId })
+      .sort({ date: -1 })
+      .limit(10);
+
+    // Count upcoming events
+    const now = new Date();
+    const upcomingEvents = events.filter(e => new Date(e.date) > now).length;
+
+    res.json({
+      club,
+      members: club.members,
+      totalMembers: club.members.length,
+      totalEvents: events.length,
+      upcomingEvents: upcomingEvents,
+      events: events
+    });
+  } catch (err) {
+    res.status(500).json({ message: "Server error: " + err.message });
+  }
+};
+
+// Remove member from club
+exports.removeMember = async (req, res) => {
+  try {
+    const { clubId, memberId } = req.params;
+
+    const club = await Club.findById(clubId);
+
+    if (!club) {
+      return res.status(404).json({ message: "Club not found" });
+    }
+
+    // Check if user is the creator or admin
+    if (club.createdBy.toString() !== req.user.id && req.user.role !== "admin") {
+      return res.status(403).json({ message: "You can only manage your own clubs" });
+    }
+
+    // Remove member from club
+    club.members = club.members.filter(m => m.toString() !== memberId);
+    await club.save();
+
+    res.json({ message: "Member removed successfully" });
+  } catch (err) {
+    res.status(500).json({ message: "Server error: " + err.message });
   }
 };
 
@@ -196,6 +335,20 @@ exports.reviewRoleRequest = async (req, res) => {
       message: `Role request ${status}`,
       request
     });
+  } catch (err) {
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+// Get student's joined clubs
+exports.getMyClubs = async (req, res) => {
+  try {
+    const clubs = await Club.find({ 
+      members: req.user.id,
+      status: "approved"
+    }).populate("createdBy", "name email");
+
+    res.json(clubs);
   } catch (err) {
     res.status(500).json({ message: "Server error" });
   }

@@ -10,6 +10,24 @@ const clubSchema = new mongoose.Schema({
     type: String,
     required: true
   },
+  category: {
+    type: String,
+    required: false,
+    default: "General"
+  },
+  logo: {
+    type: String,
+    required: false
+  },
+  facultyCoordinator: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "User",
+    required: false
+  },
+  eventsCount: {
+    type: Number,
+    default: 0
+  },
   createdBy: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "User",
