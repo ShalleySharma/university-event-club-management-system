@@ -1,4 +1,4 @@
-/* Teacher Dashboard - Clean & Modern Theme */
+ /* Teacher Dashboard - Clean & Modern Theme */
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
 
 :root {
@@ -768,3 +768,599 @@
     display: none;
   }
 }
+
+/* Create Button */
+.teacher-btn-create {
+  padding: 12px 24px;
+  background: linear-gradient(135deg, var(--teacher-primary-blue), var(--teacher-primary-light));
+  color: var(--teacher-white);
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 14px;
+  transition: var(--teacher-transition);
+}
+
+.teacher-btn-create:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 15px rgba(37, 99, 235, 0.3);
+}
+
+/* Success & Error Messages */
+.teacher-success-message {
+  background: #d1fae5;
+  color: #065f46;
+  padding: 12px 20px;
+  border-radius: 8px;
+  margin-bottom: 20px;
+  font-weight: 500;
+}
+
+.teacher-error-message {
+  background: #fee2e2;
+  color: #991b1b;
+  padding: 12px 20px;
+  border-radius: 8px;
+  margin-bottom: 20px;
+  font-weight: 500;
+}
+
+/* Club Card Details */
+.teacher-club-category {
+  font-size: 13px;
+  color: var(--teacher-primary-blue);
+  font-weight: 500;
+  margin: 8px 0;
+}
+
+.teacher-club-status {
+  margin: 12px 0;
+}
+
+.status-badge {
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: capitalize;
+}
+
+.status-badge.status-pending {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.status-badge.status-approved {
+  background: #d1fae5;
+  color: #065f46;
+}
+
+.status-badge.status-rejected {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+/* Club Actions */
+.teacher-club-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.teacher-btn-edit {
+  flex: 1;
+  padding: 10px 16px;
+  background: var(--teacher-primary-blue);
+  color: var(--teacher-white);
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 500;
+  font-size: 13px;
+  transition: var(--teacher-transition);
+}
+
+.teacher-btn-edit:hover {
+  background: #1d4ed8;
+}
+
+.teacher-btn-delete {
+  flex: 1;
+  padding: 10px 16px;
+  background: #ef4444;
+  color: var(--teacher-white);
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 500;
+  font-size: 13px;
+  transition: var(--teacher-transition);
+}
+
+.teacher-btn-delete:hover {
+  background: #dc2626;
+}
+
+/* Modal Styles */
+.teacher-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.teacher-modal {
+  background: var(--teacher-white);
+  border-radius: 16px;
+  width: 90%;
+  max-width: 500px;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: var(--teacher-shadow-lg);
+}
+
+.teacher-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 24px;
+  border-bottom: 1px solid var(--teacher-light-gray);
+}
+
+.teacher-modal-header h3 {
+  font-size: 20px;
+  color: var(--teacher-primary-dark);
+  margin: 0;
+  font-weight: 600;
+}
+
+.teacher-modal-close {
+  background: none;
+  border: none;
+  font-size: 28px;
+  color: var(--teacher-text-gray);
+  cursor: pointer;
+  padding: 0;
+  line-height: 1;
+}
+
+.teacher-modal-close:hover {
+  color: var(--teacher-primary-dark);
+}
+
+.teacher-modal form {
+  padding: 24px;
+}
+
+.teacher-form-group {
+  margin-bottom: 20px;
+}
+
+.teacher-form-group label {
+  display: block;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--teacher-text-dark);
+  margin-bottom: 8px;
+}
+
+.teacher-form-group input,
+.teacher-form-group textarea,
+.teacher-form-group select {
+  width: 100%;
+  padding: 12px 16px;
+  border: 1px solid var(--teacher-light-gray);
+  border-radius: 8px;
+  font-size: 14px;
+  color: var(--teacher-text-dark);
+  transition: var(--teacher-transition);
+}
+
+.teacher-form-group input:focus,
+.teacher-form-group textarea:focus,
+.teacher-form-group select:focus {
+  outline: none;
+  border-color: var(--teacher-primary-blue);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+
+.teacher-form-group textarea {
+  min-height: 100px;
+  resize: vertical;
+}
+
+.teacher-form-error {
+  background: #fee2e2;
+  color: #991b1b;
+  padding: 10px 14px;
+  border-radius: 8px;
+  margin-bottom: 16px;
+  font-size: 14px;
+}
+
+.teacher-btn-submit {
+  width: 100%;
+  padding: 14px 24px;
+  background: linear-gradient(135deg, var(--teacher-primary-blue), var(--teacher-primary-light));
+  color: var(--teacher-white);
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 15px;
+  transition: var(--teacher-transition);
+  margin-top: 10px;
+}
+
+.teacher-btn-submit:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 15px rgba(37, 99, 235, 0.3);
+}
+
+.teacher-btn-submit:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* View Club Button */
+.teacher-btn-view {
+  flex: 1;
+  padding: 10px 16px;
+  background: #10b981;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 500;
+  font-size: 13px;
+  transition: all 0.3s ease;
+}
+
+.teacher-btn-view:hover {
+  background: #059669;
+}
+
+/* Remove Member Button */
+.teacher-btn-remove-member {
+  padding: 6px 12px;
+  background: #ef4444;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 500;
+  transition: all 0.3s ease;
+}
+
+.teacher-btn-remove-member:hover {
+  background: #dc2626;
+}
+
+/* Large Modal for Club Details */
+.teacher-modal-large {
+  max-width: 800px;
+}
+
+/* Club Details Styles */
+.teacher-club-details {
+  padding: 24px;
+}
+
+.teacher-detail-section {
+  margin-bottom: 30px;
+}
+
+.teacher-detail-section h4 {
+  font-size: 18px;
+  color: #0A192F;
+  margin-bottom: 16px;
+  font-weight: 600;
+  padding-bottom: 8px;
+  border-bottom: 2px solid #E2E8F0;
+}
+
+.teacher-detail-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+}
+
+.teacher-detail-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.teacher-detail-label {
+  font-size: 13px;
+  color: #64748B;
+  font-weight: 500;
+}
+
+.teacher-detail-value {
+  font-size: 15px;
+  color: #1E293B;
+  font-weight: 500;
+}
+
+/* Statistics Cards */
+.teacher-stats-cards {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+}
+
+.teacher-stat-card {
+  background: linear-gradient(135deg, #2563EB, #3B82F6);
+  border-radius: 12px;
+  padding: 24px;
+  text-align: center;
+  color: white;
+}
+
+.teacher-stat-icon {
+  font-size: 32px;
+  display: block;
+  margin-bottom: 8px;
+}
+
+.teacher-stat-number {
+  font-size: 36px;
+  font-weight: 700;
+  display: block;
+  margin-bottom: 4px;
+}
+
+.teacher-stat-label {
+  font-size: 14px;
+  opacity: 0.9;
+}
+
+/* Members Table */
+.teacher-members-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: white;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.teacher-members-table th,
+.teacher-members-table td {
+  padding: 12px 16px;
+  text-align: left;
+  border-bottom: 1px solid #E2E8F0;
+}
+
+.teacher-members-table th {
+  background: #F8FAFC;
+  font-weight: 600;
+  color: #0A192F;
+  font-size: 13px;
+}
+
+.teacher-members-table td {
+  font-size: 14px;
+  color: #1E293B;
+}
+
+.teacher-members-table tr:hover {
+  background: #F8FAFC;
+}
+
+.teacher-no-members {
+  text-align: center;
+  padding: 30px;
+  color: #64748B;
+  font-size: 14px;
+}
+
+/* ==================== EVENTS STYLES ==================== */
+
+/* Stats Row */
+.teacher-stats-row {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  margin-bottom: 30px;
+}
+
+.teacher-stat-card-mini {
+  background: linear-gradient(135deg, #2563EB, #3B82F6);
+  border-radius: 12px;
+  padding: 20px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  color: white;
+}
+
+.teacher-stat-card-mini .stat-icon {
+  font-size: 32px;
+}
+
+.teacher-stat-card-mini .stat-content {
+  display: flex;
+  flex-direction: column;
+}
+
+.teacher-stat-card-mini .stat-number {
+  font-size: 28px;
+  font-weight: 700;
+}
+
+.teacher-stat-card-mini .stat-label {
+  font-size: 13px;
+  opacity: 0.9;
+}
+
+/* Events Table */
+.teacher-events-table-container {
+  background: white;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.teacher-events-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.teacher-events-table thead {
+  background: #F8FAFC;
+}
+
+.teacher-events-table th {
+  padding: 16px;
+  text-align: left;
+  font-weight: 600;
+  color: #0A192F;
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.teacher-events-table td {
+  padding: 16px;
+  border-bottom: 1px solid #E2E8F0;
+  color: #1E293B;
+  font-size: 14px;
+}
+
+.teacher-events-table tr:hover {
+  background: #F8FAFC;
+}
+
+.teacher-events-table tr:last-child td {
+  border-bottom: none;
+}
+
+.teacher-events-table .actions-cell {
+  display: flex;
+  gap: 8px;
+}
+
+.teacher-events-table .actions-cell button {
+  padding: 8px 12px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 500;
+  transition: all 0.3s ease;
+}
+
+.teacher-btn-participants {
+  background: #8B5CF6 !important;
+  color: white !important;
+}
+
+.teacher-btn-participants:hover {
+  background: #7C3AED !important;
+}
+
+/* Event Details Modal */
+.teacher-event-details {
+  padding: 20px;
+}
+
+.teacher-event-details .detail-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 12px 0;
+  border-bottom: 1px solid #E2E8F0;
+}
+
+.teacher-event-details .detail-row:last-child {
+  border-bottom: none;
+}
+
+.teacher-event-details .detail-label {
+  font-weight: 600;
+  color: #64748B;
+  font-size: 14px;
+}
+
+.teacher-event-details .detail-value {
+  color: #1E293B;
+  font-size: 14px;
+}
+
+/* Participants Modal */
+.teacher-participants-list {
+  padding: 20px;
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.teacher-participants-list ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.teacher-participants-list li {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  border-bottom: 1px solid #E2E8F0;
+}
+
+.teacher-participants-list li:last-child {
+  border-bottom: none;
+}
+
+.teacher-participants-list .participant-number {
+  font-weight: 600;
+  color: #2563EB;
+  min-width: 24px;
+}
+
+.teacher-participants-list .participant-name {
+  flex: 1;
+  font-weight: 500;
+  color: #1E293B;
+}
+
+.teacher-participants-list .participant-email {
+  color: #64748B;
+  font-size: 13px;
+}
+
+.teacher-participants-list .no-participants {
+  text-align: center;
+  padding: 40px;
+  color: #64748B;
+}
+
+/* Responsive for Events */
+@media (max-width: 1024px) {
+  .teacher-stats-row {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  
+  .teacher-events-table-container {
+    overflow-x: auto;
+  }
+  
+  .teacher-events-table {
+    min-width: 800px;
+  }
+}
+
+@media (max-width: 640px) {
+  .teacher-stats-row {
+    grid-template-columns: 1fr;
+  }
+}
+

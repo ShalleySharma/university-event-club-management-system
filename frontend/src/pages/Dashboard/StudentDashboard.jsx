@@ -8,113 +8,209 @@ const StudentDashboard = ({ user }) => {
   const { logout } = useContext(AuthContext);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [activeSection, setActiveSection] = useState("dashboard");
-  const [clubs, setClubs] = useState([]);
-  const [loadingClubs, setLoadingClubs] = useState(false);
+  
+  // State for data
+  const [stats, setStats] = useState({ joinedClubs: 0, registeredEvents: 0, upcomingEvents: [] });
+  const [allClubs, setAllClubs] = useState([]);
   const [joinedClubs, setJoinedClubs] = useState([]);
+  const [allEvents, setAllEvents] = useState([]);
+  const [registeredEvents, setRegisteredEvents] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [success, setSuccess] = useState("");
+  const [error, setError] = useState("");
+  
+  // Modal states
+  const [showClubDetails, setShowClubDetails] = useState(false);
+  const [selectedClub, setSelectedClub] = useState(null);
+  const [clubDetails, setClubDetails] = useState(null);
+  const [showEventDetails, setShowEventDetails] = useState(false);
+  const [selectedEvent, setSelectedEvent] = useState(null);
 
-  // Generate a logo emoji based on club name
-  const getClubLogo = (name) => {
-    const nameLower = name.toLowerCase();
-    if (nameLower.includes('code') || nameLower.includes('programming') || nameLower.includes('tech')) return '💻';
-    if (nameLower.includes('robot') || nameLower.includes('automation')) return '🤖';
-    if (nameLower.includes('cultural') || nameLower.includes('dance') || nameLower.includes('art')) return '🎭';
-    if (nameLower.includes('sport') || nameLower.includes('fitness') || nameLower.includes('football') || nameLower.includes('cricket')) return '⚽';
-    if (nameLower.includes('drama') || nameLower.includes('theatre') || nameLower.includes('theater')) return '🎬';
-    if (nameLower.includes('music') || nameLower.includes('band') || nameLower.includes('sound')) return '🎵';
-    if (nameLower.includes('photo') || nameLower.includes('camera') || nameLower.includes('media')) return '📷';
-    if (nameLower.includes('science') || nameLower.includes('research')) return '🔬';
-    if (nameLower.includes('business') || nameLower.includes('entrepreneur')) return '💼';
-    if (nameLower.includes('literary') || nameLower.includes('book') || nameLower.includes('writing')) return '📚';
-    if (nameLower.includes('eco') || nameLower.includes('green') || nameLower.includes('nature')) return '🌱';
-    if (nameLower.includes('social') || nameLower.includes('community')) return '🤝';
-    return '🏛';
-  };
-
-  const fetchClubs = async () => {
-    setLoadingClubs(true);
-    try {
-      const token = localStorage.getItem('token');
-      const response = await fetch("http://localhost:5000/api/clubs", {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      const data = await response.json();
-      
-      const clubsWithLogos = data.map(club => ({
-        ...club,
-        logo: club.logo || getClubLogo(club.name),
-        memberCount: club.members ? club.members.length : 0
-      }));
-      
-      setClubs(clubsWithLogos);
-    } catch (error) {
-      console.error("Error fetching clubs:", error);
-      setClubs([
-        { _id: 1, name: "Coding Club", description: "Enhancing programming skills.", logo: "💻", memberCount: 150, status: "approved" },
-        { _id: 2, name: "Robotics Club", description: "Building robots and automation.", logo: "🤖", memberCount: 80, status: "approved" },
-        { _id: 3, name: "Cultural Club", description: "Art, music, and dance talents.", logo: "🎭", memberCount: 120, status: "approved" },
-        { _id: 4, name: "Sports Club", description: "Fitness and competitive sports.", logo: "⚽", memberCount: 200, status: "approved" },
-        { _id: 5, name: "Drama Club", description: "Theatre and performances.", logo: "🎬", memberCount: 45, status: "approved" },
-        { _id: 6, name: "Music Club", description: "Music compositions.", logo: "🎵", memberCount: 60, status: "approved" }
-      ]);
+  // Fetch data on section change
+  useEffect(() => {
+    if (activeSection === "dashboard") {
+      fetchDashboardStats();
+    } else if (activeSection === "clubs") {
+      fetchAllClubs();
+      fetchJoinedClubs();
+    } else if (activeSection === "events") {
+      fetchAllEvents();
+      fetchRegisteredEvents();
     }
-    setLoadingClubs(false);
+  }, [activeSection]);
+
+  const fetchDashboardStats = async () => {
+    setLoading(true);
+    try {
+      const token = localStorage.getItem("token");
+      const response = await fetch("http://localhost:5000/api/events/student/stats", {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setStats(data);
+      }
+    } catch (err) {
+      console.error("Error fetching stats:", err);
+    }
+    setLoading(false);
   };
 
-  const handleExploreClubs = () => {
-    setActiveSection("clubs");
-    if (clubs.length === 0) {
-      fetchClubs();
+  const fetchAllClubs = async () => {
+    setLoading(true);
+    try {
+      const token = localStorage.getItem("token");
+      const response = await fetch("http://localhost:5000/api/clubs", {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setAllClubs(data);
+      }
+    } catch (err) {
+      console.error("Error fetching clubs:", err);
+    }
+    setLoading(false);
+  };
+
+  const fetchJoinedClubs = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      const response = await fetch("http://localhost:5000/api/clubs/student/my-clubs", {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setJoinedClubs(data);
+      }
+    } catch (err) {
+      console.error("Error fetching joined clubs:", err);
+    }
+  };
+
+  const fetchAllEvents = async () => {
+    setLoading(true);
+    try {
+      const token = localStorage.getItem("token");
+      const response = await fetch("http://localhost:5000/api/events/all", {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setAllEvents(data);
+      }
+    } catch (err) {
+      console.error("Error fetching events:", err);
+    }
+    setLoading(false);
+  };
+
+  const fetchRegisteredEvents = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      const response = await fetch("http://localhost:5000/api/events/student/registrations", {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setRegisteredEvents(data);
+      }
+    } catch (err) {
+      console.error("Error fetching registered events:", err);
     }
   };
 
   const handleJoinClub = async (clubId) => {
+    setError("");
+    setSuccess("");
     try {
-      const token = localStorage.getItem('token');
-      await fetch(`http://localhost:5000/api/clubs/${clubId}/join`, {
+      const token = localStorage.getItem("token");
+      const response = await fetch(`http://localhost:5000/api/clubs/${clubId}/join`, {
         method: "POST",
-        headers: { 'Authorization': `Bearer ${token}` }
+        headers: { Authorization: `Bearer ${token}` }
       });
-      setJoinedClubs([...joinedClubs, clubId]);
-    } catch (error) {
-      console.error("Error joining club:", error);
-      setJoinedClubs([...joinedClubs, clubId]);
+      const data = await response.json();
+      if (response.ok) {
+        setSuccess("Successfully joined the club!");
+        fetchJoinedClubs();
+        fetchAllClubs();
+        setTimeout(() => setSuccess(""), 3000);
+      } else {
+        setError(data.message || "Failed to join club");
+      }
+    } catch (err) {
+      setError("Network error. Please try again.");
     }
   };
 
-  const isClubJoined = (clubId) => joinedClubs.includes(clubId);
+  const handleViewClub = async (club) => {
+    setSelectedClub(club);
+    setShowClubDetails(true);
+    try {
+      const token = localStorage.getItem("token");
+      const response = await fetch(`http://localhost:5000/api/clubs/${club._id}/details`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setClubDetails(data);
+      }
+    } catch (err) {
+      console.error("Error fetching club details:", err);
+    }
+  };
 
-  const dashboardData = {
-    totalClubs: 8,
-    eventsThisWeek: 3,
-    myJoinedEvents: 5,
-    upcomingEvents: [
-      { id: 1, name: "Web Development Workshop", date: "5 March 2026", time: "2:00 PM", venue: "Lab 3", club: "Coding Club", joined: false },
-      { id: 2, name: "Hackathon 2026", date: "10 March 2026", time: "10:00 AM", venue: "Auditorium", club: "Coding Club", joined: true },
-      { id: 3, name: "Robotics Competition", date: "15 March 2026", time: "9:00 AM", venue: "Workshop Hall", club: "Robotics Club", joined: false }
-    ],
-    clubs: [
-      { id: 1, name: "Coding Club", description: "Enhancing programming and development skills.", logo: "💻", events: 12, members: 150 },
-      { id: 2, name: "Robotics Club", description: "Building robots and learning automation.", logo: "🤖", events: 8, members: 80 },
-      { id: 3, name: "Cultural Club", description: "Showcasing art, music, and dance talents.", logo: "🎭", events: 15, members: 120 },
-      { id: 4, name: "Sports Club", description: "Promoting fitness and competitive sports.", logo: "⚽", events: 10, members: 200 },
-      { id: 5, name: "Drama Club", description: "Theatre and dramatic performances.", logo: "🎬", events: 6, members: 45 },
-      { id: 6, name: "Music Club", description: "Learning and performing music compositions.", logo: "🎵", events: 9, members: 60 }
-    ]
+  const handleRegisterEvent = async (eventId) => {
+    setError("");
+    setSuccess("");
+    try {
+      const token = localStorage.getItem("token");
+      const response = await fetch(`http://localhost:5000/api/events/${eventId}/register`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const data = await response.json();
+      if (response.ok) {
+        setSuccess("Successfully registered for the event!");
+        fetchAllEvents();
+        fetchRegisteredEvents();
+        setTimeout(() => setSuccess(""), 3000);
+      } else {
+        setError(data.message || "Failed to register");
+      }
+    } catch (err) {
+      setError("Network error. Please try again.");
+    }
+  };
+
+  const handleViewEvent = (event) => {
+    setSelectedEvent(event);
+    setShowEventDetails(true);
+  };
+
+  const isClubJoined = (clubId) => {
+    return joinedClubs.some(c => c._id === clubId);
+  };
+
+  const isEventRegistered = (eventId) => {
+    return allEvents.some(e => e._id === eventId && e.isRegistered);
+  };
+
+  const getClubLogo = (name) => {
+    const nameLower = name?.toLowerCase() || "";
+    if (nameLower.includes('code') || nameLower.includes('programming') || nameLower.includes('tech')) return '💻';
+    if (nameLower.includes('robot')) return '🤖';
+    if (nameLower.includes('cultural') || nameLower.includes('dance') || nameLower.includes('art')) return '🎭';
+    if (nameLower.includes('sport') || nameLower.includes('fitness')) return '⚽';
+    if (nameLower.includes('drama') || nameLower.includes('theatre')) return '🎬';
+    if (nameLower.includes('music')) return '🎵';
+    if (nameLower.includes('science') || nameLower.includes('research')) return '🔬';
+    if (nameLower.includes('business') || nameLower.includes('entrepreneur')) return '💼';
+    if (nameLower.includes('literary') || nameLower.includes('book')) return '📚';
+    return '🏛';
   };
 
   const toggleSidebar = () => setSidebarCollapsed(!sidebarCollapsed);
-
-  const getBadge = (percentage) => {
-    if (percentage >= 90) return { badge: "🥇 Gold Member", color: "#FFD700" };
-    if (percentage >= 80) return { badge: "🥈 Silver Member", color: "#C0C0C0" };
-    return { badge: "🥉 Bronze Member", color: "#CD7F32" };
-  };
-
-  const badge = getBadge(85);
-
-  const handleJoinEvent = (eventId) => {
-    console.log("Join event:", eventId);
-  };
 
   const handleLogout = () => {
     logout();
@@ -122,8 +218,18 @@ const StudentDashboard = ({ user }) => {
     window.location.reload();
   };
 
-  // Render Dashboard Section
-  const renderDashboardSection = () => (
+  // Generate a badge based on clubs joined
+  const getBadge = (clubsCount) => {
+    if (clubsCount >= 5) return { badge: "🥇 Gold Member", color: "#FFD700" };
+    if (clubsCount >= 3) return { badge: "🥈 Silver Member", color: "#C0C0C0" };
+    return { badge: "🥉 Bronze Member", color: "#CD7F32" };
+  };
+
+  const badge = getBadge(stats.joinedClubs);
+
+  // ==================== RENDER SECTIONS ====================
+  
+  const renderDashboard = () => (
     <>
       <section className="student-welcome-section">
         <div className="student-welcome-content">
@@ -137,99 +243,95 @@ const StudentDashboard = ({ user }) => {
         </div>
       </section>
 
+      {/* Stats Cards */}
       <section className="student-quick-overview">
         <div className="student-overview-card">
           <div className="student-overview-icon">🏛</div>
           <div className="student-overview-info">
-            <h3>{dashboardData.totalClubs}</h3>
-            <p>Total Clubs</p>
+            <h3>{stats.joinedClubs}</h3>
+            <p>Joined Clubs</p>
           </div>
         </div>
         <div className="student-overview-card">
           <div className="student-overview-icon">📅</div>
           <div className="student-overview-info">
-            <h3>{dashboardData.eventsThisWeek}</h3>
-            <p>Events This Week</p>
+            <h3>{stats.registeredEvents}</h3>
+            <p>Registered Events</p>
           </div>
         </div>
         <div className="student-overview-card">
           <div className="student-overview-icon">✅</div>
           <div className="student-overview-info">
-            <h3>{dashboardData.myJoinedEvents}</h3>
-            <p>My Joined Events</p>
+            <h3>{stats.upcomingEvents?.length || 0}</h3>
+            <p>Upcoming Events</p>
           </div>
         </div>
         <div className="student-overview-card">
           <div className="student-overview-icon">🎯</div>
           <div className="student-overview-info">
-            <h3>{dashboardData.upcomingEvents.length}</h3>
-            <p>Upcoming Events</p>
+            <h3>{allEvents.filter(e => e.isRegistered).length}</h3>
+            <p>My Events</p>
           </div>
         </div>
       </section>
 
-      <section className="student-events-section">
-        <div className="student-section-header">
-          <h3>📅 Upcoming Events</h3>
-          <button className="student-view-all-btn" onClick={() => setActiveSection("events")}>View All</button>
-        </div>
-        <div className="student-events-grid">
-          {dashboardData.upcomingEvents.map(event => (
-            <div key={event.id} className="student-event-card">
-              <div className="student-event-header">
-                <span className="student-event-icon">📌</span>
-                <h4>{event.name}</h4>
+      {/* Upcoming Events */}
+      {stats.upcomingEvents && stats.upcomingEvents.length > 0 && (
+        <section className="student-events-section">
+          <div className="student-section-header">
+            <h3>📅 Upcoming Events</h3>
+            <button className="student-view-all-btn" onClick={() => setActiveSection("events")}>View All</button>
+          </div>
+          <div className="student-events-grid">
+            {stats.upcomingEvents.slice(0, 3).map(event => (
+              <div key={event._id} className="student-event-card">
+                <div className="student-event-header">
+                  <span className="student-event-icon">📌</span>
+                  <h4>{event.eventName}</h4>
+                </div>
+                <div className="student-event-details">
+                  <p><span>📅</span> {event.date}</p>
+                  <p><span>🕒</span> {event.time}</p>
+                  <p><span>📍</span> {event.location}</p>
+                </div>
               </div>
-              <div className="student-event-details">
-                <p><span>📅</span> {event.date}</p>
-                <p><span>🕒</span> {event.time}</p>
-                <p><span>📍</span> {event.venue}</p>
-                <p><span>🏛</span> {event.club}</p>
-              </div>
-              <div className="student-event-actions">
-                {event.joined ? (
-                  <button className="student-btn-joined" disabled>✓ Joined</button>
-                ) : (
-                  <>
-                    <button className="student-btn-details">View Details</button>
-                    <button className="student-btn-join" onClick={() => handleJoinEvent(event.id)}>Join Now</button>
-                  </>
-                )}
-              </div>
-            </div>
-          ))}
-        </div>
-      </section>
+            ))}
+          </div>
+        </section>
+      )}
     </>
   );
 
-  // Render Clubs Section
-  const renderClubsSection = () => (
+  const renderClubs = () => (
     <section className="student-clubs-full-section">
       <div className="student-section-header">
-        <h3>🏛 All Clubs</h3>
-        <span className="student-club-count">{clubs.length} clubs available</span>
+        <h3>🏛 Explore Clubs</h3>
+        <span className="student-club-count">{allClubs.length} clubs available</span>
       </div>
-      {loadingClubs ? (
+      
+      {success && <div className="student-success-message">{success}</div>}
+      {error && <div className="student-error-message">{error}</div>}
+
+      {loading ? (
         <div className="student-loading">Loading clubs...</div>
       ) : (
         <div className="student-clubs-grid-full">
-          {clubs.map(club => (
-            <div key={club._id || club.id} className="student-club-card-full">
-              <div className="student-club-logo">{club.logo || '🏛'}</div>
+          {allClubs.map(club => (
+            <div key={club._id} className="student-club-card-full">
+              <div className="student-club-logo">{club.logo || getClubLogo(club.name)}</div>
               <div className="student-club-info">
                 <h4>{club.name}</h4>
                 <p className="student-club-description">{club.description}</p>
                 <div className="student-club-stats">
-                  <span>📅 {club.events || 0} Events</span>
-                  <span>👥 {club.members || 0} Members</span>
+                  <span>👥 {club.members?.length || 0} Members</span>
                 </div>
               </div>
               <div className="student-club-actions">
-                {isClubJoined(club._id || club.id) ? (
+                <button className="student-btn-details" onClick={() => handleViewClub(club)}>View</button>
+                {isClubJoined(club._id) ? (
                   <button className="student-btn-joined" disabled>✓ Joined</button>
                 ) : (
-                  <button className="student-btn-join" onClick={() => handleJoinClub(club._id || club.id)}>Join Club</button>
+                  <button className="student-btn-join" onClick={() => handleJoinClub(club._id)}>Join Club</button>
                 )}
               </div>
             </div>
@@ -239,51 +341,53 @@ const StudentDashboard = ({ user }) => {
     </section>
   );
 
-  // Render Events Section
-  const renderEventsSection = () => (
+  const renderEvents = () => (
     <section className="student-events-full-section">
       <div className="student-section-header">
-        <h3>📅 My Events</h3>
-        <span className="student-event-count">{dashboardData.upcomingEvents.length} upcoming events</span>
+        <h3>📅 All Events</h3>
+        <span className="student-event-count">{allEvents.length} events available</span>
       </div>
-      <div className="student-events-grid-full">
-        {dashboardData.upcomingEvents.map(event => (
-          <div key={event.id} className="student-event-card-full">
-            <div className="student-event-header">
-              <span className="student-event-icon">📌</span>
-              <h4>{event.name}</h4>
+
+      {success && <div className="student-success-message">{success}</div>}
+      {error && <div className="student-error-message">{error}</div>}
+
+      {loading ? (
+        <div className="student-loading">Loading events...</div>
+      ) : (
+        <div className="student-events-grid-full">
+          {allEvents.map(event => (
+            <div key={event._id} className="student-event-card-full">
+              <div className="student-event-header">
+                <span className="student-event-icon">📌</span>
+                <h4>{event.eventName}</h4>
+              </div>
+              <div className="student-event-details">
+                <p><span>🏛</span> {event.clubName}</p>
+                <p><span>📅</span> {event.date}</p>
+                <p><span>🕒</span> {event.time}</p>
+                <p><span>📍</span> {event.location}</p>
+                <p><span>👥</span> {event.registrationCount || 0} registered</p>
+              </div>
+              <div className="student-event-actions">
+                <button className="student-btn-details" onClick={() => handleViewEvent(event)}>View</button>
+                {event.isRegistered ? (
+                  <button className="student-btn-joined" disabled>✓ Registered</button>
+                ) : (
+                  <button className="student-btn-join" onClick={() => handleRegisterEvent(event._id)}>Register</button>
+                )}
+              </div>
             </div>
-            <div className="student-event-details">
-              <p><span>📅</span> {event.date}</p>
-              <p><span>🕒</span> {event.time}</p>
-              <p><span>📍</span> {event.venue}</p>
-              <p><span>🏛</span> {event.club}</p>
-            </div>
-            <div className="student-event-actions">
-              {event.joined ? (
-                <button className="student-btn-joined" disabled>✓ Joined</button>
-              ) : (
-                <>
-                  <button className="student-btn-details">View Details</button>
-                  <button className="student-btn-join" onClick={() => handleJoinEvent(event.id)}>Join Now</button>
-                </>
-              )}
-            </div>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      )}
     </section>
   );
 
-  // Render Profile Section
-  const renderProfileSection = () => (
+  const renderProfile = () => (
     <section className="student-profile-section">
       <div className="student-profile-header">
         <div className="student-profile-avatar-large">
-          <img 
-            src={`https://ui-avatars.com/api/?name=${user?.name || 'Student'}&background=2563EB&color=fff&size=150`} 
-            alt="Profile" 
-          />
+          <img src={`https://ui-avatars.com/api/?name=${user?.name || 'Student'}&background=2563EB&color=fff&size=150`} alt="Profile" />
         </div>
         <div className="student-profile-info">
           <h2>{user?.name || 'Student'}</h2>
@@ -293,19 +397,89 @@ const StudentDashboard = ({ user }) => {
       </div>
       <div className="student-profile-details">
         <div className="student-detail-card">
-          <h4>📊 Stats</h4>
-          <p>Joined Clubs: {joinedClubs.length}</p>
-          <p>Events Attended: {dashboardData.myJoinedEvents}</p>
+          <h4>📊 My Stats</h4>
+          <p>Joined Clubs: {stats.joinedClubs}</p>
+          <p>Registered Events: {stats.registeredEvents}</p>
         </div>
         <div className="student-detail-card">
-          <h4>⚙️ Settings</h4>
-          <p>Notifications: Enabled</p>
-          <p>Email Updates: Enabled</p>
+          <h4>🎯 Joined Clubs</h4>
+          {joinedClubs.length > 0 ? (
+            <ul className="student-joined-list">
+              {joinedClubs.map(club => (
+                <li key={club._id}>{club.name}</li>
+              ))}
+            </ul>
+          ) : (
+            <p>No clubs joined yet</p>
+          )}
         </div>
       </div>
     </section>
   );
 
+  // ==================== MODALS ====================
+  const renderClubDetailsModal = () => {
+    if (!showClubDetails) return null;
+    return (
+      <div className="student-modal-overlay" onClick={() => setShowClubDetails(false)}>
+        <div className="student-modal" onClick={(e) => e.stopPropagation()}>
+          <div className="student-modal-header">
+            <h3>🏛 {selectedClub?.name}</h3>
+            <button className="student-modal-close" onClick={() => setShowClubDetails(false)}>×</button>
+          </div>
+          <div className="student-modal-body">
+            <p><strong>Description:</strong> {selectedClub?.description}</p>
+            <p><strong>Category:</strong> {selectedClub?.category || "General"}</p>
+            <p><strong>Total Members:</strong> {clubDetails?.totalMembers || 0}</p>
+            <p><strong>Total Events:</strong> {clubDetails?.totalEvents || 0}</p>
+            <div className="student-modal-actions">
+              {isClubJoined(selectedClub?._id) ? (
+                <button className="student-btn-joined" disabled>✓ You're a Member</button>
+              ) : (
+                <button className="student-btn-join" onClick={() => { handleJoinClub(selectedClub?._id); setShowClubDetails(false); }}>
+                  Join Club
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  const renderEventDetailsModal = () => {
+    if (!showEventDetails) return null;
+    return (
+      <div className="student-modal-overlay" onClick={() => setShowEventDetails(false)}>
+        <div className="student-modal" onClick={(e) => e.stopPropagation()}>
+          <div className="student-modal-header">
+            <h3>📅 {selectedEvent?.eventName}</h3>
+            <button className="student-modal-close" onClick={() => setShowEventDetails(false)}>×</button>
+          </div>
+          <div className="student-modal-body">
+            <p><strong>Club:</strong> {selectedEvent?.clubName}</p>
+            <p><strong>Date:</strong> {selectedEvent?.date}</p>
+            <p><strong>Time:</strong> {selectedEvent?.time}</p>
+            <p><strong>Location:</strong> {selectedEvent?.location}</p>
+            <p><strong>Description:</strong> {selectedEvent?.description}</p>
+            <p><strong>Max Participants:</strong> {selectedEvent?.maxParticipants || "Unlimited"}</p>
+            <p><strong>Registered:</strong> {selectedEvent?.registrationCount || 0}</p>
+            <div className="student-modal-actions">
+              {selectedEvent?.isRegistered ? (
+                <button className="student-btn-joined" disabled>✓ Already Registered</button>
+              ) : (
+                <button className="student-btn-join" onClick={() => { handleRegisterEvent(selectedEvent?._id); setShowEventDetails(false); }}>
+                  Register Now
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  // ==================== MAIN RENDER ====================
   return (
     <div className="student-dashboard">
       <aside className={`student-sidebar ${sidebarCollapsed ? 'collapsed' : ''}`}>
@@ -325,13 +499,13 @@ const StudentDashboard = ({ user }) => {
               <span className="student-nav-icon">🏠</span>
               {!sidebarCollapsed && <span>Dashboard</span>}
             </li>
-            <li className={activeSection === "clubs" ? "active" : ""} onClick={handleExploreClubs}>
+            <li className={activeSection === "clubs" ? "active" : ""} onClick={() => setActiveSection("clubs")}>
               <span className="student-nav-icon">🏛</span>
-              {!sidebarCollapsed && <span>Explore Clubs</span>}
+              {!sidebarCollapsed && <span>Clubs</span>}
             </li>
             <li className={activeSection === "events" ? "active" : ""} onClick={() => setActiveSection("events")}>
               <span className="student-nav-icon">📅</span>
-              {!sidebarCollapsed && <span>My Events</span>}
+              {!sidebarCollapsed && <span>Events</span>}
             </li>
             <li className={activeSection === "profile" ? "active" : ""} onClick={() => setActiveSection("profile")}>
               <span className="student-nav-icon">👤</span>
@@ -351,37 +525,33 @@ const StudentDashboard = ({ user }) => {
             <h1>
               {activeSection === "dashboard" && "Student Dashboard"}
               {activeSection === "clubs" && "Explore Clubs"}
-              {activeSection === "events" && "My Events"}
+              {activeSection === "events" && "Events"}
               {activeSection === "profile" && "My Profile"}
             </h1>
           </div>
           <div className="student-navbar-right">
-            <div className="student-notification">
-              <span className="student-notification-icon">🔔</span>
-              <span className="student-notification-badge">3</span>
-            </div>
             <div className="student-date-time">
               <span>{new Date().toLocaleDateString()}</span>
             </div>
             <div className="student-profile-dropdown" onClick={() => setActiveSection("profile")}>
-              <img 
-                src={`https://ui-avatars.com/api/?name=${user?.name || 'Student'}&background=2563EB&color=fff`} 
-                alt="Profile" 
-                className="student-navbar-avatar" 
-              />
+              <img src={`https://ui-avatars.com/api/?name=${user?.name || 'Student'}&background=2563EB&color=fff`} alt="Profile" className="student-navbar-avatar" />
             </div>
           </div>
         </header>
 
         <div className="student-content-area">
-          {activeSection === "dashboard" && renderDashboardSection()}
-          {activeSection === "clubs" && renderClubsSection()}
-          {activeSection === "events" && renderEventsSection()}
-          {activeSection === "profile" && renderProfileSection()}
+          {activeSection === "dashboard" && renderDashboard()}
+          {activeSection === "clubs" && renderClubs()}
+          {activeSection === "events" && renderEvents()}
+          {activeSection === "profile" && renderProfile()}
         </div>
       </main>
+
+      {renderClubDetailsModal()}
+      {renderEventDetailsModal()}
     </div>
   );
 };
 
 export default StudentDashboard;
+

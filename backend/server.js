@@ -17,7 +17,18 @@ app.use(cors({
   credentials: true
 }));
 
-app.use(express.json());
+// Debug middleware to log all requests
+app.use((req, res, next) => {
+  console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);
+  console.log("Headers:", req.headers);
+  if (req.body && Object.keys(req.body).length > 0) {
+    console.log("Body:", req.body);
+  }
+  next();
+});
+
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 // Session middleware (required for Passport)
 app.use(session({
@@ -37,30 +48,11 @@ console.log("Client ID:", process.env.AZURE_CLIENT_ID);
 mongoose.connect(process.env.MONGODB_URI)
   .then(() => console.log("MongoDB Connected"));
 
-// Microsoft OAuth callback route
-app.get("/auth/microsoft/callback",
-  passport.authenticate("microsoft", { failureRedirect: "http://localhost:3000?error=auth_failed" }),
-  async (req, res) => {
-    try {
-      const user = req.user;
-      const token = jwt.sign(
-        { id: user._id, role: user.role },
-        process.env.JWT_SECRET || "your-secret-key",
-        { expiresIn: "1d" }
-      );
-
-      // Redirect to frontend with token
-      res.redirect(`http://localhost:3000/auth/success?token=${token}&role=${user.role}`);
-    } catch (err) {
-      console.error("Callback error:", err);
-      res.redirect("http://localhost:3000?error=auth_failed");
-    }
-  }
-);
-
+// Auth routes (includes /api/auth/microsoft and /api/auth/microsoft/callback)
 app.use("/api/auth", require("./routes/authRoutes"));
 app.use("/api", require("./routes/userRoutes"));
 app.use("/api/clubs", require("./routes/clubRoutes"));
+app.use("/api/events", require("./routes/eventRoutes"));
 
 app.listen(5000, () => {
   console.log("Server running on http://localhost:5000");

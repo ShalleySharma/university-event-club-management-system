@@ -1,56 +1,58 @@
-# Campus Connect - Login Flow Implementation
+# My Clubs Page Implementation Plan
 
-## Task Completed: Microsoft OAuth Login Flow
+## Task: Add "My Clubs" page for teachers with Create Club functionality
 
-### Flow Implemented:
-1. Landing Page → Click Login Button
-2. Redirect to /login page
-3. User chooses Microsoft OAuth or Email/Password
-4. Microsoft OAuth → Backend verifies → User stored in MongoDB → Session created → Redirect to Dashboard
+## Files to Update:
 
-### Files Modified:
+### 1. Backend - Club Model (backend/models/Club.js)
+Add new fields:
+- category (String)
+- logo (String - optional URL)
+- facultyCoordinator (ObjectId - ref User)
+- eventsCount (Number)
 
-#### Frontend:
-- [x] `frontend/src/pages/Landing/Landing.jsx` - Login button navigates to /login
-- [x] `frontend/src/pages/Auth/Login/Login.jsx` - Added Microsoft OAuth + Email/Password login options
-- [x] `frontend/src/pages/Auth/Login/Login.css` - Updated styling
-- [x] `frontend/src/pages/Auth/AuthSuccess.jsx` - Handles OAuth callback with role-based redirect
-- [x] `frontend/src/pages/Dashboard/Dashboard.jsx` - Routes to role-specific dashboards
-- [x] `frontend/src/pages/Dashboard/StudentDashboard.jsx` - Student dashboard (fixed)
-- [x] `frontend/src/pages/Dashboard/TeacherDashboard.jsx` - Teacher dashboard (fixed)
-- [x] `frontend/src/pages/Dashboard/ClubHeadDashboard.jsx` - Club head dashboard (fixed)
-- [x] `frontend/src/pages/Dashboard/CoordinatorDashboard.jsx` - Coordinator dashboard
-- [x] `frontend/src/pages/Dashboard/AdminDashboard.jsx` - Admin dashboard
-- [x] `frontend/src/authConfig.js` - MSAL configuration
-- [x] `frontend/src/context/AuthContext.js` - Authentication context
+### 2. Backend - Club Controller (backend/controllers/clubController.js)
+Add new functions:
+- getTeacherClubs - Get clubs created by teacher
+- updateClub - Update club details
+- deleteClub - Delete a club
 
-#### Backend:
-- [x] `backend/server.js` - Added direct login route + OAuth callback
-- [x] `backend/routes/authRoutes.js` - Microsoft OAuth + Email/Password login
-- [x] `backend/config/passport.js` - Microsoft Strategy configuration
-- [x] `backend/models/User.js` - User model with roles
+### 3. Backend - Club Routes (backend/routes/clubRoutes.js)
+Add new routes:
+- GET /my-clubs - Get teacher's clubs
+- PUT /:clubId - Update club
+- DELETE /:clubId - Delete club
 
-### Role-Based Dashboard Routing:
-- admin → AdminDashboard
-- teacher → TeacherDashboard  
-- coordinator → CoordinatorDashboard
-- club_head → ClubHeadDashboard
-- student → StudentDashboard
+### 4. Frontend - TeacherDashboard (frontend/src/pages/Dashboard/TeacherDashboard.jsx)
+- Update to show "My Clubs" section
+- Add "Create Club" button
+- Add Create Club modal/form
+- Display clubs as cards with edit/delete options
 
-### How to Test:
-1. Start backend: `cd backend && npm start` (port 5000)
-2. Start frontend: `cd frontend && npm start` (port 3000)
-3. Visit http://localhost:3000
-4. Click Login button
-5. Choose Microsoft OAuth or Email/Password login
-6. After successful login, redirected to Dashboard
+## Implementation Steps:
 
-### Environment Variables Required:
-- Azure AD:
-  - AZURE_CLIENT_ID
-  - AZURE_TENANT_ID
-  - MICROSOFT_CLIENT_SECRET
-  - MICROSOFT_CALLBACK_URL
-- JWT_SECRET
-- MONGODB_URI
-- SESSION_SECRET
+### Step 1: Update Club Model
+- Add category, logo, facultyCoordinator, eventsCount fields
+
+### Step 2: Update Club Controller
+- Add getTeacherClubs function
+- Add updateClub function
+- Add deleteClub function
+
+### Step 3: Update Club Routes
+- Add /my-clubs GET route
+- Add /:clubId PUT route
+- Add /:clubId DELETE route
+
+### Step 4: Update TeacherDashboard
+- Add state for clubs and modal
+- Add Create Club form
+- Display clubs as cards
+- Add edit/delete functionality
+
+## UI Design:
+- Clubs displayed as cards
+- Each card shows: name, description, category, members count, events count
+- "Create Club" button at top
+- View Details, Edit Club, Delete buttons on each card
+

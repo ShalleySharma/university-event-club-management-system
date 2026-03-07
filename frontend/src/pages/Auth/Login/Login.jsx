@@ -20,23 +20,25 @@ const Login = () => {
     setError("");
     setLoading(true);
 
+    const loginData = { email, password };
+    console.log("Sending login request:", loginData);
+
     try {
       const response = await fetch("http://localhost:5000/api/auth/login", {
         method: "POST",
         headers: {
           "Content-Type": "application/json"
         },
-        body: JSON.stringify({ email, password })
+        body: JSON.stringify(loginData)
       });
 
+      console.log("Response status:", response.status);
+
       const data = await response.json();
+      console.log("Login response data:", data);
 
-      console.log("Login response:", response.status, data);
-
-      if (response.ok) {
+      if (response.ok && data.success) {
         login(data.token, data.user.role);
-        
-        // Redirect based on role
         navigate("/dashboard");
       } else {
         setError(data.message || "Login failed. Please try again.");
