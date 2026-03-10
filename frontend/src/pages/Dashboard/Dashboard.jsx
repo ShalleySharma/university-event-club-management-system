@@ -10,6 +10,7 @@ const Dashboard = () => {
   const { user: authUser } = useContext(AuthContext);
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [isConvener, setIsConvener] = useState(false);
 
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -42,6 +43,8 @@ const Dashboard = () => {
       .then(data => {
         if (data) {
           setUser(data);
+          // Check if user is a convener in any club
+          checkConvenerStatus(token, data.email);
         }
         setLoading(false);
       })
@@ -53,6 +56,32 @@ const Dashboard = () => {
         window.location.href = '/';
       });
   }, []);
+
+  // Check if user is a convener in any approved club
+  const checkConvenerStatus = (token, email) => {
+    if (!email) return;
+    
+    fetch("http://localhost:5000/api/clubs/check-convener", {
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    })
+    .then(res => {
+      if (!res.ok) {
+        // If endpoint doesn't exist or returns error, just set to false
+        setIsConvener(false);
+        return { isConvener: false };
+      }
+      return res.json();
+    })
+    .then(data => {
+      setIsConvener(data?.isConvener || false);
+    })
+    .catch(err => {
+      console.error("Error checking convener status:", err);
+      setIsConvener(false);
+    });
+  };
 
   const handleLogout = async () => {
     try {
@@ -78,13 +107,24 @@ const Dashboard = () => {
   }
 
   const renderDashboard = () => {
+    // Check if user is a club head by role OR by being a convener in a club
+    // Priority: club_head role > convener status > student > other roles
+    if (user.role === "club_head" || isConvener) {
+      return <ClubHeadDashboard user={user} />;
+    }
+    
+    // Check if student is also a coordinator
+    if (user.role === "coordinator") {
+      return <CoordinatorDashboard user={user} />;
+    }
+    
+    // Regular student
+    if (user.role === "student") {
+      return <StudentDashboard user={user} />;
+    }
+    
+    // Admin and Teacher
     switch (user.role) {
-      case "student":
-        return <StudentDashboard user={user} />;
-      case "club_head":
-        return <ClubHeadDashboard user={user} />;
-      case "coordinator":
-        return <CoordinatorDashboard user={user} />;
       case "admin":
         return <AdminDashboard user={user} />;
       case "teacher":

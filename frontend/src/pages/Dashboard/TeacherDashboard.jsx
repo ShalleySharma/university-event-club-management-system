@@ -7,9 +7,19 @@ const TeacherDashboard = ({ user }) => {
   const navigate = useNavigate();
   const { logout } = useContext(AuthContext);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const [activeSection, setActiveSection] = useState("myClubs");
+  const [activeSection, setActiveSection] = useState("dashboard");
   
-  // Clubs state
+  // Dashboard state
+  const [dashboardStats, setDashboardStats] = useState({
+    totalClubs: 0,
+    totalEvents: 0,
+    totalMembers: 0,
+    upcomingEvents: 0,
+    pendingApprovals: 0,
+    recentActivities: []
+  });
+  const [recentClubs, setRecentClubs] = useState([]);
+  const [recentEvents, setRecentEvents] = useState([]);
   const [myClubs, setMyClubs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showCreateClubModal, setShowCreateClubModal] = useState(false);
@@ -27,28 +37,56 @@ const TeacherDashboard = ({ user }) => {
   const [showEditEventModal, setShowEditEventModal] = useState(false);
   const [showEventDetailsModal, setShowEventDetailsModal] = useState(false);
   const [showParticipantsModal, setShowParticipantsModal] = useState(false);
+  const [showPaymentVerifyModal, setShowPaymentVerifyModal] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState(null);
   const [eventDetails, setEventDetails] = useState(null);
   const [eventParticipants, setEventParticipants] = useState([]);
   const [editingEvent, setEditingEvent] = useState(null);
-  const [eventStats, setEventStats] = useState({ totalEvents: 0, upcomingEvents: 0, pastEvents: 0, totalRegistrations: 0 });
+  const [eventStats, setEventStats] = useState({ totalEvents: 0, upcomingEvents: 0, pastEvents: 0, totalRegistrations: 0, pendingPayments: 0 });
+  const [pendingPayments, setPendingPayments] = useState([]);
   
   // Form state
   const [clubFormData, setClubFormData] = useState({
     name: "",
     description: "",
     category: "Technical",
-    logo: ""
+    logo: "",
+    // Coordinator (auto-filled from logged-in user)
+    coordinatorName: "",
+    coordinatorEmail: "",
+    // Convener
+    convenerName: "",
+    convenerEmail: "",
+    // Co-convener
+    coConvenerName: "",
+    coConvenerEmail: "",
+    // Meeting details
+    meetingDay: "",
+    meetingTime: "",
+    meetingLocation: "",
+    // Membership settings
+    maxMembers: 50,
+    joinType: "approval",
+    // Contact
+    clubEmail: ""
   });
   const [eventFormData, setEventFormData] = useState({
     eventName: "",
     clubId: "",
-    date: "",
-    time: "",
-    location: "",
     description: "",
+    poster: "",
+    date: "",
+    startTime: "",
+    endTime: "",
+    eventMode: "offline",
+    location: "",
+    meetingLink: "",
+    eventType: "free",
+    registrationFee: 0,
+    upiId: "",
+    qrCode: "",
     maxParticipants: "",
-    poster: ""
+    registrationDeadline: ""
   });
   
   const [error, setError] = useState("");
@@ -89,6 +127,32 @@ const TeacherDashboard = ({ user }) => {
     setError("");
     setSuccess("");
 
+    // Format the data for backend
+    const clubData = {
+      name: clubFormData.name,
+      description: clubFormData.description,
+      category: clubFormData.category,
+      logo: clubFormData.logo,
+      coordinator: {
+        name: clubFormData.coordinatorName || user?.name || "",
+        email: clubFormData.coordinatorEmail || user?.email || ""
+      },
+      convener: {
+        name: clubFormData.convenerName,
+        email: clubFormData.convenerEmail
+      },
+      coConvener: {
+        name: clubFormData.coConvenerName,
+        email: clubFormData.coConvenerEmail
+      },
+      meetingDay: clubFormData.meetingDay,
+      meetingTime: clubFormData.meetingTime,
+      meetingLocation: clubFormData.meetingLocation,
+      maxMembers: clubFormData.maxMembers,
+      joinType: clubFormData.joinType,
+      clubEmail: clubFormData.clubEmail
+    };
+
     try {
       const response = await fetch("http://localhost:5000/api/clubs", {
         method: "POST",
@@ -96,23 +160,52 @@ const TeacherDashboard = ({ user }) => {
           "Content-Type": "application/json",
           Authorization: `Bearer ${localStorage.getItem("token")}`
         },
-        body: JSON.stringify(clubFormData)
+        body: JSON.stringify(clubData)
       });
 
       const data = await response.json();
 
       if (response.ok) {
-        setSuccess("Club created successfully! Waiting for admin approval.");
+        // Show role assignment info if any
+        let successMsg = "Club created successfully! Waiting for admin approval.";
+        if (data.roleAssignments && data.roleAssignments.length > 0) {
+          const pendingReg = data.roleAssignments.filter(r => r.status === "pending_registration");
+          if (pendingReg.length > 0) {
+            successMsg += ` Note: ${pendingReg.map(r => r.email).join(", ")} need to register first to get their roles.`;
+          }
+        }
+        setSuccess(successMsg);
         setShowCreateClubModal(false);
-        setClubFormData({ name: "", description: "", category: "Technical", logo: "" });
+        resetClubFormData();
         fetchMyClubs();
-        setTimeout(() => setSuccess(""), 3000);
+        setTimeout(() => setSuccess(""), 5000);
       } else {
         setError(data.message || "Failed to create club");
       }
     } catch (err) {
       setError("Network error. Please try again.");
     }
+  };
+
+  const resetClubFormData = () => {
+    setClubFormData({
+      name: "",
+      description: "",
+      category: "Technical",
+      logo: "",
+      coordinatorName: "",
+      coordinatorEmail: "",
+      convenerName: "",
+      convenerEmail: "",
+      coConvenerName: "",
+      coConvenerEmail: "",
+      meetingDay: "",
+      meetingTime: "",
+      meetingLocation: "",
+      maxMembers: 50,
+      joinType: "approval",
+      clubEmail: ""
+    });
   };
 
   const handleEditClub = (club) => {
@@ -278,7 +371,7 @@ const TeacherDashboard = ({ user }) => {
       if (response.ok) {
         setSuccess("Event created successfully!");
         setShowCreateEventModal(false);
-        setEventFormData({ eventName: "", clubId: "", date: "", time: "", location: "", description: "", maxParticipants: "", poster: "" });
+        setEventFormData({ eventName: "", clubId: "", description: "", poster: "", date: "", startTime: "", endTime: "", eventMode: "offline", location: "", meetingLink: "", eventType: "free", registrationFee: 0, upiId: "", qrCode: "", maxParticipants: "", registrationDeadline: "" });
         fetchMyEvents();
         fetchEventStats();
         setTimeout(() => setSuccess(""), 3000);
@@ -395,6 +488,35 @@ const TeacherDashboard = ({ user }) => {
         setEventParticipants(data.participants);
       } else {
         setError(data.message || "Failed to load participants");
+      }
+    } catch (err) {
+      setError("Network error. Please try again.");
+    }
+  };
+
+  const handleVerifyPayment = async (registrationId, status) => {
+    setError("");
+    setSuccess("");
+    try {
+      const token = localStorage.getItem("token");
+      const response = await fetch(`http://localhost:5000/api/events/${selectedEvent._id}/participants/${registrationId}/verify`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({ status })
+      });
+      
+      if (response.ok) {
+        setSuccess(`Payment ${status} successfully!`);
+        // Refresh participants
+        handleViewParticipants(selectedEvent);
+        fetchEventStats();
+        setTimeout(() => setSuccess(""), 3000);
+      } else {
+        const data = await response.json();
+        setError(data.message || "Failed to verify payment");
       }
     } catch (err) {
       setError("Network error. Please try again.");
@@ -673,24 +795,74 @@ const TeacherDashboard = ({ user }) => {
 
   const renderParticipantsModal = () => {
     if (!showParticipantsModal) return null;
+    
+    // Check if this event is paid
+    const isPaidEvent = selectedEvent?.eventType === "paid" || (eventDetails?.event?.eventType === "paid");
+    
     return (
       <div className="teacher-modal-overlay" onClick={() => setShowParticipantsModal(false)}>
-        <div className="teacher-modal" onClick={(e) => e.stopPropagation()}>
+        <div className="teacher-modal teacher-modal-large" onClick={(e) => e.stopPropagation()}>
           <div className="teacher-modal-header">
             <h3>👥 Event Participants</h3>
             <button className="teacher-modal-close" onClick={() => setShowParticipantsModal(false)}>×</button>
           </div>
+          {success && <div className="teacher-success-message" style={{ margin: '10px' }}>{success}</div>}
+          {error && <div className="teacher-error-message" style={{ margin: '10px' }}>{error}</div>}
           <div className="teacher-participants-list">
             {eventParticipants.length > 0 ? (
-              <ul>
-                {eventParticipants.map((participant, index) => (
-                  <li key={participant._id}>
-                    <span className="participant-number">{index + 1}.</span>
-                    <span className="participant-name">{participant.name}</span>
-                    <span className="participant-email">{participant.email}</span>
-                  </li>
-                ))}
-              </ul>
+              <table className="teacher-members-table" style={{ width: '100%' }}>
+                <thead>
+                  <tr>
+                    <th>#</th>
+                    <th>Name</th>
+                    <th>Email</th>
+                    {isPaidEvent && <th>Payment Status</th>}
+                    {isPaidEvent && <th>Transaction ID</th>}
+                    {isPaidEvent && <th>Actions</th>}
+                  </tr>
+                </thead>
+                <tbody>
+                  {eventParticipants.map((participant, index) => (
+                    <tr key={participant._id}>
+                      <td>{index + 1}</td>
+                      <td>{participant.name}</td>
+                      <td>{participant.email}</td>
+                      {isPaidEvent && (
+                        <>
+                          <td>
+                            <span className={`status-badge status-${participant.paymentStatus || 'pending'}`}>
+                              {participant.paymentStatus || 'pending'}
+                            </span>
+                          </td>
+                          <td>{participant.transactionId || '-'}</td>
+                          <td>
+                            {participant.paymentStatus === "pending" && (
+                              <>
+                                <button 
+                                  className="teacher-btn-approve" 
+                                  style={{ marginRight: '5px', padding: '5px 10px', fontSize: '12px' }}
+                                  onClick={() => handleVerifyPayment(participant._id, "approved")}
+                                >
+                                  Approve
+                                </button>
+                                <button 
+                                  className="teacher-btn-reject" 
+                                  style={{ padding: '5px 10px', fontSize: '12px' }}
+                                  onClick={() => handleVerifyPayment(participant._id, "rejected")}
+                                >
+                                  Reject
+                                </button>
+                              </>
+                            )}
+                            {participant.paymentStatus === "approved" && <span style={{ color: 'green' }}>✓ Verified</span>}
+                            {participant.paymentStatus === "rejected" && <span style={{ color: 'red' }}>✗ Rejected</span>}
+                          </td>
+                        </>
+                      )}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             ) : (
               <p className="no-participants">No participants registered yet.</p>
             )}
@@ -715,6 +887,10 @@ const TeacherDashboard = ({ user }) => {
         </div>
         <nav className="teacher-sidebar-nav">
           <ul>
+            <li className={activeSection === "dashboard" ? "active" : ""} onClick={() => setActiveSection("dashboard")}>
+              <span className="teacher-nav-icon">📊</span>
+              {!sidebarCollapsed && <span>Dashboard</span>}
+            </li>
             <li className={activeSection === "myClubs" ? "active" : ""} onClick={() => setActiveSection("myClubs")}>
               <span className="teacher-nav-icon">🏛</span>
               {!sidebarCollapsed && <span>My Clubs</span>}
@@ -739,6 +915,7 @@ const TeacherDashboard = ({ user }) => {
         <header className="teacher-top-navbar">
           <div className="teacher-navbar-left">
             <h1>
+              {activeSection === "dashboard" && "Teacher Dashboard"}
               {activeSection === "myClubs" && "My Clubs"}
               {activeSection === "events" && "Events"}
               {activeSection === "profile" && "My Profile"}
@@ -755,6 +932,93 @@ const TeacherDashboard = ({ user }) => {
         </header>
 
         <div className="teacher-dashboard-content">
+          {activeSection === "dashboard" && (
+            <section className="teacher-dashboard-section">
+              {/* Welcome Banner */}
+              <div className="teacher-welcome-banner">
+                <div className="teacher-welcome-content">
+                  <div className="teacher-welcome-text">
+                    <h2>👋 Welcome back, {user?.name || 'Teacher'}!</h2>
+                    <p>Here's an overview of your club and event activities.</p>
+                  </div>
+                  <div className="teacher-welcome-illustration">
+                    <span className="teacher-illustration-icon">🎓</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Stats Cards */}
+              <div className="teacher-stats-grid">
+                <div className="teacher-stat-card">
+                  <div className="teacher-stat-icon" style={{ background: 'linear-gradient(135deg, #667eea, #764ba2)' }}>🏛</div>
+                  <div className="teacher-stat-info">
+                    <h3>{myClubs.length}</h3>
+                    <p>Total Clubs</p>
+                  </div>
+                </div>
+                <div className="teacher-stat-card">
+                  <div className="teacher-stat-icon" style={{ background: 'linear-gradient(135deg, #f093fb, #f5576c)' }}>📅</div>
+                  <div className="teacher-stat-info">
+                    <h3>{eventStats.totalEvents || 0}</h3>
+                    <p>Total Events</p>
+                  </div>
+                </div>
+                <div className="teacher-stat-card">
+                  <div className="teacher-stat-icon" style={{ background: 'linear-gradient(135deg, #4facfe, #00f2fe)' }}>👥</div>
+                  <div className="teacher-stat-info">
+                    <h3>{myClubs.reduce((acc, club) => acc + (club.members?.length || 0), 0)}</h3>
+                    <p>Total Members</p>
+                  </div>
+                </div>
+                <div className="teacher-stat-card">
+                  <div className="teacher-stat-icon" style={{ background: 'linear-gradient(135deg, #43e97b, #38f9d7)' }}>✅</div>
+                  <div className="teacher-stat-info">
+                    <h3>{eventStats.upcomingEvents || 0}</h3>
+                    <p>Upcoming Events</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Quick Actions */}
+              <div className="teacher-quick-actions">
+                <h3>⚡ Quick Actions</h3>
+                <div className="teacher-action-buttons">
+                  <button className="teacher-action-btn" onClick={() => setShowCreateClubModal(true)}>
+                    <span>🏛</span> Create New Club
+                  </button>
+                  <button className="teacher-action-btn" onClick={() => { setActiveSection("events"); }}>
+                    <span>📅</span> Manage Events
+                  </button>
+                  <button className="teacher-action-btn" onClick={() => { setActiveSection("myClubs"); }}>
+                    <span>👥</span> View Members
+                  </button>
+                </div>
+              </div>
+
+              {/* Recent Activity */}
+              <div className="teacher-recent-section">
+                <h3>📋 Recent Clubs</h3>
+                {myClubs.length > 0 ? (
+                  <div className="teacher-recent-grid">
+                    {myClubs.slice(0, 3).map(club => (
+                      <div key={club._id} className="teacher-recent-card">
+                        <div className="teacher-recent-icon">🏛</div>
+                        <div className="teacher-recent-info">
+                          <h4>{club.name}</h4>
+                          <p>{club.category || "General"}</p>
+                          <span className={`status-badge status-${club.status}`}>{club.status || "pending"}</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="teacher-empty-recent">
+                    <p>No clubs created yet. Create your first club to get started!</p>
+                  </div>
+                )}
+              </div>
+            </section>
+          )}
           {activeSection === "myClubs" && renderMyClubsSection()}
           {activeSection === "events" && renderEventsSection()}
           {activeSection === "profile" && renderProfileSection()}
@@ -764,22 +1028,20 @@ const TeacherDashboard = ({ user }) => {
       {/* Create Club Modal */}
       {showCreateClubModal && (
         <div className="teacher-modal-overlay" onClick={() => setShowCreateClubModal(false)}>
-          <div className="teacher-modal" onClick={(e) => e.stopPropagation()}>
+          <div className="teacher-modal teacher-modal-large" onClick={(e) => e.stopPropagation()}>
             <div className="teacher-modal-header">
               <h3>Create New Club</h3>
               <button className="teacher-modal-close" onClick={() => setShowCreateClubModal(false)}>×</button>
             </div>
             <form onSubmit={handleCreateClub}>
+              {/* Basic Club Information */}
+              <div className="form-section-title">📋 Basic Club Information</div>
               <div className="teacher-form-group">
-                <label>Club Name</label>
+                <label>Club Name *</label>
                 <input type="text" name="name" value={clubFormData.name} onChange={handleClubInputChange} placeholder="e.g., AI Club" required />
               </div>
               <div className="teacher-form-group">
-                <label>Description</label>
-                <textarea name="description" value={clubFormData.description} onChange={handleClubInputChange} placeholder="Describe your club..." required />
-              </div>
-              <div className="teacher-form-group">
-                <label>Category</label>
+                <label>Category *</label>
                 <select name="category" value={clubFormData.category} onChange={handleClubInputChange}>
                   <option value="Technical">Technical</option>
                   <option value="Cultural">Cultural</option>
@@ -792,9 +1054,96 @@ const TeacherDashboard = ({ user }) => {
                 </select>
               </div>
               <div className="teacher-form-group">
-                <label>Logo URL (Optional)</label>
+                <label>Description *</label>
+                <textarea name="description" value={clubFormData.description} onChange={handleClubInputChange} placeholder="Describe your club..." required />
+              </div>
+              <div className="teacher-form-group">
+                <label>Club Logo URL (Optional)</label>
                 <input type="text" name="logo" value={clubFormData.logo} onChange={handleClubInputChange} placeholder="https://example.com/logo.png" />
               </div>
+
+              {/* Leadership Assignment */}
+              <div className="form-section-title">👥 Leadership Assignment</div>
+              
+              {/* Teacher Coordinator - Auto-filled */}
+              <div className="teacher-form-group">
+                <label>Teacher Coordinator</label>
+                <div className="form-row">
+                  <input type="text" name="coordinatorName" value={clubFormData.coordinatorName || user?.name || ""} onChange={handleClubInputChange} placeholder="Coordinator Name" />
+                  <input type="email" name="coordinatorEmail" value={clubFormData.coordinatorEmail || user?.email || ""} onChange={handleClubInputChange} placeholder="Coordinator Email" />
+                </div>
+                <small className="form-hint">Auto-filled from your account</small>
+              </div>
+
+              {/* Convener */}
+              <div className="teacher-form-group">
+                <label>Convener (Student Leader)</label>
+                <div className="form-row">
+                  <input type="text" name="convenerName" value={clubFormData.convenerName} onChange={handleClubInputChange} placeholder="Convener Name" />
+                  <input type="email" name="convenerEmail" value={clubFormData.convenerEmail} onChange={handleClubInputChange} placeholder="Convener Email" />
+                </div>
+              </div>
+
+              {/* Co-Convener */}
+              <div className="teacher-form-group">
+                <label>Co-Convener</label>
+                <div className="form-row">
+                  <input type="text" name="coConvenerName" value={clubFormData.coConvenerName} onChange={handleClubInputChange} placeholder="Co-Convener Name" />
+                  <input type="email" name="coConvenerEmail" value={clubFormData.coConvenerEmail} onChange={handleClubInputChange} placeholder="Co-Convener Email" />
+                </div>
+              </div>
+
+              {/* Meeting Details */}
+              <div className="form-section-title">📅 Meeting Details</div>
+              <div className="teacher-form-group">
+                <label>Meeting Day</label>
+                <select name="meetingDay" value={clubFormData.meetingDay} onChange={handleClubInputChange}>
+                  <option value="">Select Day</option>
+                  <option value="Monday">Monday</option>
+                  <option value="Tuesday">Tuesday</option>
+                  <option value="Wednesday">Wednesday</option>
+                  <option value="Thursday">Thursday</option>
+                  <option value="Friday">Friday</option>
+                  <option value="Saturday">Saturday</option>
+                  <option value="Sunday">Sunday</option>
+                </select>
+              </div>
+              <div className="teacher-form-group">
+                <label>Meeting Time</label>
+                <input type="text" name="meetingTime" value={clubFormData.meetingTime} onChange={handleClubInputChange} placeholder="e.g., 4:00 PM" />
+              </div>
+              <div className="teacher-form-group">
+                <label>Meeting Location</label>
+                <input type="text" name="meetingLocation" value={clubFormData.meetingLocation} onChange={handleClubInputChange} placeholder="e.g., Seminar Hall" />
+              </div>
+
+              {/* Membership Settings */}
+              <div className="form-section-title">⚙️ Membership Settings</div>
+              <div className="teacher-form-group">
+                <label>Maximum Members</label>
+                <input type="number" name="maxMembers" value={clubFormData.maxMembers} onChange={handleClubInputChange} placeholder="e.g., 50" min="1" />
+              </div>
+              <div className="teacher-form-group">
+                <label>Join Type</label>
+                <div className="radio-group">
+                  <label className="radio-label">
+                    <input type="radio" name="joinType" value="open" checked={clubFormData.joinType === "open"} onChange={handleClubInputChange} />
+                    Open Join (Anyone can join)
+                  </label>
+                  <label className="radio-label">
+                    <input type="radio" name="joinType" value="approval" checked={clubFormData.joinType === "approval"} onChange={handleClubInputChange} />
+                    Approval Required (Admin approves requests)
+                  </label>
+                </div>
+              </div>
+
+              {/* Contact Details */}
+              <div className="form-section-title">📧 Contact Details</div>
+              <div className="teacher-form-group">
+                <label>Club Email</label>
+                <input type="email" name="clubEmail" value={clubFormData.clubEmail} onChange={handleClubInputChange} placeholder="e.g., aiclub@college.com" />
+              </div>
+
               {error && <div className="teacher-form-error">{error}</div>}
               <button type="submit" className="teacher-btn-submit">Create Club</button>
             </form>
@@ -846,18 +1195,20 @@ const TeacherDashboard = ({ user }) => {
       {/* Create Event Modal */}
       {showCreateEventModal && (
         <div className="teacher-modal-overlay" onClick={() => setShowCreateEventModal(false)}>
-          <div className="teacher-modal" onClick={(e) => e.stopPropagation()}>
+          <div className="teacher-modal teacher-modal-large" onClick={(e) => e.stopPropagation()}>
             <div className="teacher-modal-header">
               <h3>Create New Event</h3>
               <button className="teacher-modal-close" onClick={() => setShowCreateEventModal(false)}>×</button>
             </div>
             <form onSubmit={handleCreateEvent}>
+              {/* Basic Info */}
+              <div className="form-section-title">📋 Event Information</div>
               <div className="teacher-form-group">
-                <label>Event Name</label>
+                <label>Event Name *</label>
                 <input type="text" name="eventName" value={eventFormData.eventName} onChange={handleEventInputChange} placeholder="e.g., Hackathon 2026" required />
               </div>
               <div className="teacher-form-group">
-                <label>Select Club</label>
+                <label>Select Club *</label>
                 <select name="clubId" value={eventFormData.clubId} onChange={handleEventInputChange} required>
                   <option value="">Select a club</option>
                   {myClubs.filter(c => c.status === 'approved').map(club => (
@@ -866,29 +1217,101 @@ const TeacherDashboard = ({ user }) => {
                 </select>
               </div>
               <div className="teacher-form-group">
-                <label>Date</label>
-                <input type="text" name="date" value={eventFormData.date} onChange={handleEventInputChange} placeholder="e.g., 20 March" required />
-              </div>
-              <div className="teacher-form-group">
-                <label>Time</label>
-                <input type="text" name="time" value={eventFormData.time} onChange={handleEventInputChange} placeholder="e.g., 10:00 AM" required />
-              </div>
-              <div className="teacher-form-group">
-                <label>Location</label>
-                <input type="text" name="location" value={eventFormData.location} onChange={handleEventInputChange} placeholder="e.g., Lab 3" required />
-              </div>
-              <div className="teacher-form-group">
-                <label>Description</label>
+                <label>Description *</label>
                 <textarea name="description" value={eventFormData.description} onChange={handleEventInputChange} placeholder="Describe your event..." required />
-              </div>
-              <div className="teacher-form-group">
-                <label>Max Participants (Optional)</label>
-                <input type="number" name="maxParticipants" value={eventFormData.maxParticipants} onChange={handleEventInputChange} placeholder="e.g., 50" />
               </div>
               <div className="teacher-form-group">
                 <label>Event Poster URL (Optional)</label>
                 <input type="text" name="poster" value={eventFormData.poster} onChange={handleEventInputChange} placeholder="https://example.com/poster.jpg" />
               </div>
+
+              {/* Schedule */}
+              <div className="form-section-title">📅 Schedule Details</div>
+              <div className="teacher-form-group">
+                <label>Date *</label>
+                <input type="text" name="date" value={eventFormData.date} onChange={handleEventInputChange} placeholder="e.g., 20 March 2026" required />
+              </div>
+              <div className="form-row">
+                <div className="teacher-form-group">
+                  <label>Start Time *</label>
+                  <input type="text" name="startTime" value={eventFormData.startTime} onChange={handleEventInputChange} placeholder="e.g., 10:00 AM" required />
+                </div>
+                <div className="teacher-form-group">
+                  <label>End Time</label>
+                  <input type="text" name="endTime" value={eventFormData.endTime} onChange={handleEventInputChange} placeholder="e.g., 5:00 PM" />
+                </div>
+              </div>
+
+              {/* Event Mode */}
+              <div className="form-section-title">🌐 Event Mode</div>
+              <div className="teacher-form-group">
+                <label>Event Mode</label>
+                <div className="radio-group">
+                  <label className="radio-label">
+                    <input type="radio" name="eventMode" value="offline" checked={eventFormData.eventMode === "offline"} onChange={handleEventInputChange} />
+                    Offline (In-person)
+                  </label>
+                  <label className="radio-label">
+                    <input type="radio" name="eventMode" value="online" checked={eventFormData.eventMode === "online"} onChange={handleEventInputChange} />
+                    Online
+                  </label>
+                </div>
+              </div>
+              {eventFormData.eventMode === "offline" ? (
+                <div className="teacher-form-group">
+                  <label>Location</label>
+                  <input type="text" name="location" value={eventFormData.location} onChange={handleEventInputChange} placeholder="e.g., Seminar Hall, Lab 3" />
+                </div>
+              ) : (
+                <div className="teacher-form-group">
+                  <label>Meeting Link</label>
+                  <input type="text" name="meetingLink" value={eventFormData.meetingLink} onChange={handleEventInputChange} placeholder="https://meet.google.com/..." />
+                </div>
+              )}
+
+              {/* Fee Details */}
+              <div className="form-section-title">💰 Registration Fee</div>
+              <div className="teacher-form-group">
+                <label>Event Type</label>
+                <div className="radio-group">
+                  <label className="radio-label">
+                    <input type="radio" name="eventType" value="free" checked={eventFormData.eventType === "free"} onChange={handleEventInputChange} />
+                    Free Event
+                  </label>
+                  <label className="radio-label">
+                    <input type="radio" name="eventType" value="paid" checked={eventFormData.eventType === "paid"} onChange={handleEventInputChange} />
+                    Paid Event
+                  </label>
+                </div>
+              </div>
+              {eventFormData.eventType === "paid" && (
+                <>
+                  <div className="teacher-form-group">
+                    <label>Registration Fee (₹)</label>
+                    <input type="number" name="registrationFee" value={eventFormData.registrationFee} onChange={handleEventInputChange} placeholder="e.g., 100" min="0" />
+                  </div>
+                  <div className="teacher-form-group">
+                    <label>UPI ID</label>
+                    <input type="text" name="upiId" value={eventFormData.upiId} onChange={handleEventInputChange} placeholder="e.g., college@sbi" />
+                  </div>
+                  <div className="teacher-form-group">
+                    <label>QR Code URL</label>
+                    <input type="text" name="qrCode" value={eventFormData.qrCode} onChange={handleEventInputChange} placeholder="https://example.com/qrcode.jpg" />
+                  </div>
+                </>
+              )}
+
+              {/* Participation */}
+              <div className="form-section-title">👥 Participation</div>
+              <div className="teacher-form-group">
+                <label>Max Participants (0 = unlimited)</label>
+                <input type="number" name="maxParticipants" value={eventFormData.maxParticipants} onChange={handleEventInputChange} placeholder="e.g., 50" min="0" />
+              </div>
+              <div className="teacher-form-group">
+                <label>Registration Deadline</label>
+                <input type="text" name="registrationDeadline" value={eventFormData.registrationDeadline} onChange={handleEventInputChange} placeholder="e.g., 18 March 2026" />
+              </div>
+
               {error && <div className="teacher-form-error">{error}</div>}
               <button type="submit" className="teacher-btn-submit">Create Event</button>
             </form>

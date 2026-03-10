@@ -581,6 +581,17 @@
   align-items: center;
   justify-content: center;
   margin-bottom: 0;
+  overflow: hidden;
+}
+
+.club-logo-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.club-logo-emoji {
+  font-size: 48px;
 }
 
 .student-club-card-full .student-club-info {

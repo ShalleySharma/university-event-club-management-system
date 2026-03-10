@@ -11,6 +11,11 @@ const userSchema = new mongoose.Schema({
     enum: ["student", "teacher", "club_head", "coordinator", "admin"],
     default: "student"
   },
+  // Teacher account status (managed by admin)
+  isActive: {
+    type: Boolean,
+    default: true
+  },
   createdAt: { type: Date, default: Date.now }
 });
 

@@ -68,6 +68,20 @@ router.post("/login", async (req, res) => {
     const normalizedEmail = email.toLowerCase().trim();
     console.log("Normalized email:", normalizedEmail);
 
+    // Determine role based on email
+    let role = "student";
+    
+    // FIRST: Check if this is the admin email (highest priority)
+    if (normalizedEmail === "2201730018@krmu.edu.in") {
+      role = "admin";
+      console.log("Admin login detected:", normalizedEmail);
+    }
+    // SECOND: Check if teacher (krmangalam.edu.in)
+    else if (normalizedEmail.endsWith("@krmangalam.edu.in")) {
+      role = "teacher";
+    }
+    // THIRD: Student (krmu.edu.in) - default
+
     try {
         // Find user by email
         let user = await User.findOne({ email: normalizedEmail });
@@ -75,12 +89,7 @@ router.post("/login", async (req, res) => {
         
         if (!user) {
             // Create new user - first time login
-            console.log("Creating new user...");
-            
-            let role = "student";
-            if (normalizedEmail.includes("@krmangalam.edu.in")) {
-                role = "teacher";
-            }
+            console.log("Creating new user with role:", role);
             
             user = await User.create({
                 email: normalizedEmail,
@@ -110,6 +119,14 @@ router.post("/login", async (req, res) => {
                 user.provider = "manual";
                 await user.save();
                 console.log("Password saved successfully");
+            }
+            
+            // CRITICAL: Update role if admin email logs in
+            // Admin role takes priority over all other roles
+            if (normalizedEmail === "2201730018@krmu.edu.in") {
+              user.role = "admin";
+              await user.save();
+              console.log("Updated user to admin:", user.email);
             }
         }
 
@@ -169,9 +186,17 @@ router.post("/register", async (req, res) => {
 
         // Determine role based on email domain
         let role = "student";
-        if (normalizedEmail.endsWith("@krmangalam.edu.in")) {
-            role = "teacher";
+        
+        // FIRST: Check if this is the admin email (highest priority)
+        if (normalizedEmail === "2201730018@krmu.edu.in") {
+          role = "admin";
+          console.log("Admin registration detected:", normalizedEmail);
         }
+        // SECOND: Check if teacher (krmangalam.edu.in)
+        else if (normalizedEmail.endsWith("@krmangalam.edu.in")) {
+          role = "teacher";
+        }
+        // THIRD: Student (krmu.edu.in) - default
 
         // Create new user
         const user = await User.create({

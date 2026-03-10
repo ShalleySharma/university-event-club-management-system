@@ -2,20 +2,36 @@ const router = require("express").Router();
 const { isAuthenticated, authorizeRoles } = require("../middleware/authMiddleware");
 const clubController = require("../controllers/clubController");
 
+// Check if user is a convener in any approved club (must be before /:clubId routes)
+router.get(
+  "/check-convener",
+  isAuthenticated,
+  clubController.checkConvenerStatus
+);
+
+// Get clubs (role-based visibility) - must be before /:clubId routes
+router.get("/", isAuthenticated, clubController.getClubs);
+
+// Get user by email (for validation)
+router.get(
+  "/user-by-email/:email",
+  isAuthenticated,
+  clubController.getUserByEmail
+);
+
+// Get my clubs (for teachers/club heads and students who are conveners)
+router.get(
+  "/my-clubs",
+  isAuthenticated,
+  clubController.getTeacherClubs
+);
+
 // Create club (teachers, club heads and admins)
 router.post(
   "/",
   isAuthenticated,
   authorizeRoles("teacher", "club_head", "admin"),
   clubController.createClub
-);
-
-// Get my clubs (for teachers/club heads)
-router.get(
-  "/my-clubs",
-  isAuthenticated,
-  authorizeRoles("teacher", "club_head", "admin"),
-  clubController.getTeacherClubs
 );
 
 // Update club
@@ -38,7 +54,6 @@ router.delete(
 router.get(
   "/:clubId/details",
   isAuthenticated,
-  authorizeRoles("teacher", "club_head", "admin"),
   clubController.getClubDetails
 );
 
@@ -49,9 +64,6 @@ router.delete(
   authorizeRoles("teacher", "club_head", "admin"),
   clubController.removeMember
 );
-
-// Get clubs (role-based visibility)
-router.get("/", isAuthenticated, clubController.getClubs);
 
 // Approve/reject club (admin only)
 router.patch(

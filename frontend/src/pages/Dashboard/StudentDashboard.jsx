@@ -13,6 +13,8 @@ const StudentDashboard = ({ user }) => {
   const [stats, setStats] = useState({ joinedClubs: 0, registeredEvents: 0, upcomingEvents: [] });
   const [allClubs, setAllClubs] = useState([]);
   const [joinedClubs, setJoinedClubs] = useState([]);
+  const [myClubs, setMyClubs] = useState([]); // Clubs created by this user
+  const [badges, setBadges] = useState([]); // Badges based on roles (convener, co-convener)
   const [allEvents, setAllEvents] = useState([]);
   const [registeredEvents, setRegisteredEvents] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -25,9 +27,19 @@ const StudentDashboard = ({ user }) => {
   const [clubDetails, setClubDetails] = useState(null);
   const [showEventDetails, setShowEventDetails] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState(null);
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [paymentEvent, setPaymentEvent] = useState(null);
+  const [paymentForm, setPaymentForm] = useState({
+    transactionId: "",
+    paymentScreenshot: ""
+  });
+  const [submittingPayment, setSubmittingPayment] = useState(false);
 
   // Fetch data on section change
   useEffect(() => {
+    // Always fetch my clubs to check if user is a club head
+    fetchMyCreatedClubs();
+    
     if (activeSection === "dashboard") {
       fetchDashboardStats();
     } else if (activeSection === "clubs") {
@@ -73,7 +85,7 @@ const StudentDashboard = ({ user }) => {
     setLoading(false);
   };
 
-  const fetchJoinedClubs = async () => {
+const fetchJoinedClubs = async () => {
     try {
       const token = localStorage.getItem("token");
       const response = await fetch("http://localhost:5000/api/clubs/student/my-clubs", {
@@ -87,6 +99,68 @@ const StudentDashboard = ({ user }) => {
       console.error("Error fetching joined clubs:", err);
     }
   };
+
+  // Fetch clubs created by this user (for club head badge) and check convener/co-convener roles
+  const fetchMyCreatedClubs = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      const userEmail = user?.email?.toLowerCase();
+      
+      // Fetch clubs created by this user
+      const myClubsResponse = await fetch("http://localhost:5000/api/clubs/my-clubs", {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      
+      // Fetch all clubs to check for convener/co-convener roles
+      const allClubsResponse = await fetch("http://localhost:5000/api/clubs", {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      
+      if (myClubsResponse.ok) {
+        const myClubsData = await myClubsResponse.json();
+        setMyClubs(myClubsData);
+      }
+      
+      if (allClubsResponse.ok) {
+        const allClubsData = await allClubsResponse.json();
+        
+        // Check if user is convener or co-convener in any club
+        const newBadges = [];
+        
+        // Check for Convener role
+        const convenerClubs = allClubsData.filter(club => 
+          club.convener && club.convener.email && 
+          club.convener.email.toLowerCase() === userEmail
+        );
+        
+        // Check for Co-Convener role
+        const coConvenerClubs = allClubsData.filter(club => 
+          club.coConvener && club.coConvener.email && 
+          club.coConvener.email.toLowerCase() === userEmail
+        );
+        
+        // Add badges based on roles
+        if (convenerClubs.length > 0) {
+          newBadges.push({ type: 'convener', label: '🎯 Convener', clubs: convenerClubs.map(c => c.name) });
+        }
+        
+        if (coConvenerClubs.length > 0) {
+          newBadges.push({ type: 'co_convener', label: '⭐ Co-Convener', clubs: coConvenerClubs.map(c => c.name) });
+        }
+        
+        setBadges(newBadges);
+      }
+    } catch (err) {
+      console.error("Error fetching my clubs:", err);
+    }
+  };
+
+  // Check if user is a club head (has created clubs)
+  const isClubHead = myClubs && myClubs.length > 0;
+  
+  // Get badge info for display
+  const getConvenerBadge = () => badges.find(b => b.type === 'convener');
+  const getCoConvenerBadge = () => badges.find(b => b.type === 'co_convener');
 
   const fetchAllEvents = async () => {
     setLoading(true);
@@ -134,6 +208,7 @@ const StudentDashboard = ({ user }) => {
         setSuccess("Successfully joined the club!");
         fetchJoinedClubs();
         fetchAllClubs();
+        fetchDashboardStats(); // Refresh dashboard stats
         setTimeout(() => setSuccess(""), 3000);
       } else {
         setError(data.message || "Failed to join club");
@@ -171,9 +246,19 @@ const StudentDashboard = ({ user }) => {
       });
       const data = await response.json();
       if (response.ok) {
-        setSuccess("Successfully registered for the event!");
+        // Check if it's a paid event that needs payment
+        if (data.registration && data.registration.paymentStatus === "pending") {
+          // Find the event to get payment details
+          const event = allEvents.find(e => e._id === eventId);
+          setPaymentEvent(event);
+          setShowPaymentModal(true);
+          setSuccess("Registered! Please complete payment.");
+        } else {
+          setSuccess("Successfully registered for the event!");
+        }
         fetchAllEvents();
         fetchRegisteredEvents();
+        fetchDashboardStats(); // Refresh dashboard stats
         setTimeout(() => setSuccess(""), 3000);
       } else {
         setError(data.message || "Failed to register");
@@ -181,6 +266,52 @@ const StudentDashboard = ({ user }) => {
     } catch (err) {
       setError("Network error. Please try again.");
     }
+  };
+
+  const handlePaymentSubmit = async (e) => {
+    e.preventDefault();
+    setError("");
+    setSubmittingPayment(true);
+    
+    try {
+      const token = localStorage.getItem("token");
+      // Find the registration for this event
+      const regResponse = await fetch("http://localhost:5000/api/events/student/registrations", {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const registrations = await regResponse.json();
+      const registration = registrations.find(r => r._id === paymentEvent?._id || r.eventName === paymentEvent?.eventName);
+      
+      if (registration) {
+        // Update the registration with payment details
+        const response = await fetch(`http://localhost:5000/api/events/${paymentEvent._id}/register`, {
+          method: "POST",
+          headers: { 
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}` 
+          },
+          body: JSON.stringify({
+            transactionId: paymentForm.transactionId,
+            paymentScreenshot: paymentForm.paymentScreenshot
+          })
+        });
+        
+        if (response.ok) {
+          setSuccess("Payment submitted successfully! Waiting for verification.");
+          setShowPaymentModal(false);
+          setPaymentForm({ transactionId: "", paymentScreenshot: "" });
+          fetchAllEvents();
+          fetchRegisteredEvents();
+          setTimeout(() => setSuccess(""), 3000);
+        } else {
+          const data = await response.json();
+          setError(data.message || "Failed to submit payment");
+        }
+      }
+    } catch (err) {
+      setError("Network error. Please try again.");
+    }
+    setSubmittingPayment(false);
   };
 
   const handleViewEvent = (event) => {
@@ -198,7 +329,7 @@ const StudentDashboard = ({ user }) => {
 
   const getClubLogo = (name) => {
     const nameLower = name?.toLowerCase() || "";
-    if (nameLower.includes('code') || nameLower.includes('programming') || nameLower.includes('tech')) return '💻';
+    if (nameLower.includes('code') || nameLower.includes('programming') || nameLower.includes('tech') || nameLower.includes('coding')) return '💻';
     if (nameLower.includes('robot')) return '🤖';
     if (nameLower.includes('cultural') || nameLower.includes('dance') || nameLower.includes('art')) return '🎭';
     if (nameLower.includes('sport') || nameLower.includes('fitness')) return '⚽';
@@ -208,6 +339,27 @@ const StudentDashboard = ({ user }) => {
     if (nameLower.includes('business') || nameLower.includes('entrepreneur')) return '💼';
     if (nameLower.includes('literary') || nameLower.includes('book')) return '📚';
     return '🏛';
+  };
+
+  // Helper function to check if a string is a valid URL
+  const isValidUrl = (string) => {
+    try {
+      const url = new URL(string);
+      return url.protocol === "http:" || url.protocol === "https:";
+    } catch (_) {
+      return false;
+    }
+  };
+
+  // Helper function to get the club logo (image or emoji fallback)
+  const renderClubLogo = (club) => {
+    const logo = club.logo;
+    // Check if logo exists and is a valid URL
+    if (logo && isValidUrl(logo)) {
+      return <img src={logo} alt={club.name} className="club-logo-img" onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling && (e.target.nextSibling.style.display = 'flex'); }} />;
+    }
+    // Return emoji fallback
+    return <span className="club-logo-emoji">{getClubLogo(club.name)}</span>;
   };
 
   const toggleSidebar = () => setSidebarCollapsed(!sidebarCollapsed);
@@ -318,7 +470,7 @@ const StudentDashboard = ({ user }) => {
         <div className="student-clubs-grid-full">
           {allClubs.map(club => (
             <div key={club._id} className="student-club-card-full">
-              <div className="student-club-logo">{club.logo || getClubLogo(club.name)}</div>
+              <div className="student-club-logo">{renderClubLogo(club)}</div>
               <div className="student-club-info">
                 <h4>{club.name}</h4>
                 <p className="student-club-description">{club.description}</p>
@@ -392,6 +544,11 @@ const StudentDashboard = ({ user }) => {
         <div className="student-profile-info">
           <h2>{user?.name || 'Student'}</h2>
           <p>{user?.email || 'student@college.edu'}</p>
+          
+          {/* Show role badges based on teacher assignments */}
+          {isClubHead && <span className="student-role-badge" style={{ backgroundColor: "#9C27B0" }}>👑 Club Head</span>}
+          {getConvenerBadge() && <span className="student-role-badge" style={{ backgroundColor: "#FF5722" }}>🎯 Convener</span>}
+          {getCoConvenerBadge() && <span className="student-role-badge" style={{ backgroundColor: "#00BCD4" }}>⭐ Co-Convener</span>}
           <span className="student-role-badge" style={{ backgroundColor: badge.color }}>{badge.badge}</span>
         </div>
       </div>
@@ -400,6 +557,9 @@ const StudentDashboard = ({ user }) => {
           <h4>📊 My Stats</h4>
           <p>Joined Clubs: {stats.joinedClubs}</p>
           <p>Registered Events: {stats.registeredEvents}</p>
+          {isClubHead && <p>Created Clubs: {myClubs.length}</p>}
+          {getConvenerBadge() && <p>Convener of: {getConvenerBadge().clubs.join(", ")}</p>}
+          {getCoConvenerBadge() && <p>Co-Convener of: {getCoConvenerBadge().clubs.join(", ")}</p>}
         </div>
         <div className="student-detail-card">
           <h4>🎯 Joined Clubs</h4>
@@ -413,6 +573,22 @@ const StudentDashboard = ({ user }) => {
             <p>No clubs joined yet</p>
           )}
         </div>
+        {/* Show created clubs section if user is a club head */}
+        {isClubHead && myClubs.length > 0 && (
+          <div className="student-detail-card">
+            <h4>🏛 My Created Clubs</h4>
+            <ul className="student-joined-list">
+              {myClubs.map(club => (
+                <li key={club._id}>
+                  {club.name} 
+                  <span className={`status-badge status-${club.status}`} style={{ marginLeft: '8px', fontSize: '12px' }}>
+                    {club.status}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
       </div>
     </section>
   );
