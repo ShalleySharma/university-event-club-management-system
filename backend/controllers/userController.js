@@ -1,4 +1,5 @@
 const User = require("../models/User");
+const bcrypt = require("bcryptjs");
 
 exports.getCurrentUser = async (req, res) => {
   try {
@@ -200,5 +201,107 @@ exports.getAdminDashboard = async (req, res) => {
     res.json(dashboardData);
   } catch (err) {
     res.status(500).json({ message: "Server error" });
+  }
+};
+
+// ============================================
+// ADMIN TEACHER MANAGEMENT
+// ============================================
+
+// Get all teachers
+exports.getAllTeachers = async (req, res) => {
+  try {
+    const teachers = await User.find({ role: "teacher" }).select("-password");
+    res.json(teachers);
+  } catch (err) {
+    res.status(500).json({ message: "Server error: " + err.message });
+  }
+};
+
+// Create a new teacher (admin only)
+exports.createTeacher = async (req, res) => {
+  try {
+    const { name, email, password } = req.body;
+
+    // Validate email domain
+    if (!email.endsWith("@krmangalam.edu.in")) {
+      return res.status(400).json({ message: "Teacher email must be from @krmangalam.edu.in domain" });
+    }
+
+    // Check if user already exists
+    const existingUser = await User.findOne({ email: email.toLowerCase() });
+    if (existingUser) {
+      return res.status(400).json({ message: "User with this email already exists" });
+    }
+
+    // Hash password
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    // Create teacher
+    const teacher = await User.create({
+      name,
+      email: email.toLowerCase(),
+      password: hashedPassword,
+      role: "teacher",
+      provider: "manual",
+      isActive: true
+    });
+
+    res.status(201).json({
+      message: "Teacher created successfully",
+      teacher: {
+        id: teacher._id,
+        name: teacher.name,
+        email: teacher.email,
+        role: teacher.role,
+        isActive: teacher.isActive
+      }
+    });
+  } catch (err) {
+    res.status(500).json({ message: "Server error: " + err.message });
+  }
+};
+
+// Activate teacher
+exports.activateTeacher = async (req, res) => {
+  try {
+    const teacher = await User.findById(req.params.id);
+    
+    if (!teacher) {
+      return res.status(404).json({ message: "Teacher not found" });
+    }
+
+    if (teacher.role !== "teacher") {
+      return res.status(400).json({ message: "User is not a teacher" });
+    }
+
+    teacher.isActive = true;
+    await teacher.save();
+
+    res.json({ message: "Teacher activated successfully", teacher });
+  } catch (err) {
+    res.status(500).json({ message: "Server error: " + err.message });
+  }
+};
+
+// Deactivate teacher
+exports.deactivateTeacher = async (req, res) => {
+  try {
+    const teacher = await User.findById(req.params.id);
+    
+    if (!teacher) {
+      return res.status(404).json({ message: "Teacher not found" });
+    }
+
+    if (teacher.role !== "teacher") {
+      return res.status(400).json({ message: "User is not a teacher" });
+    }
+
+    teacher.isActive = false;
+    await teacher.save();
+
+    res.json({ message: "Teacher deactivated successfully", teacher });
+  } catch (err) {
+    res.status(500).json({ message: "Server error: " + err.message });
   }
 };

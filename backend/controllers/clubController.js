@@ -2,23 +2,102 @@ const Club = require("../models/Club");
 const User = require("../models/User");
 const RoleRequest = require("../models/RoleRequest");
 
+// Helper function to find or create user and update role
+const findAndUpdateUserRole = async (email, role, clubName) => {
+  if (!email) return null;
+  
+  try {
+    let user = await User.findOne({ email: email.toLowerCase() });
+    
+    if (user) {
+      // Update user's role if they don't have a higher role
+      const roleHierarchy = { student: 1, coordinator: 2, club_head: 3, teacher: 4, admin: 5 };
+      const currentRoleLevel = roleHierarchy[user.role] || 0;
+      const newRoleLevel = roleHierarchy[role] || 0;
+      
+      // Only upgrade role if current role is lower
+      if (newRoleLevel > currentRoleLevel) {
+        user.role = role;
+        await user.save();
+      }
+      return user;
+    } else {
+      // User doesn't exist - we'll note this but not create them automatically
+      // The user needs to register first
+      console.log(`User with email ${email} not found. They will need to register.`);
+      return null;
+    }
+  } catch (err) {
+    console.error(`Error updating user role for ${email}:`, err);
+    return null;
+  }
+};
+
 // Create club (teachers, club heads and admins)
 exports.createClub = async (req, res) => {
   try {
-    const { name, description, category, logo } = req.body;
+    const { 
+      name, 
+      description, 
+      category, 
+      logo,
+      coordinator,
+      convener,
+      coConvener,
+      meetingDay,
+      meetingTime,
+      meetingLocation,
+      maxMembers,
+      joinType,
+      clubEmail
+    } = req.body;
 
+    // Create the club with all fields
     const club = await Club.create({
       name,
       description,
       category: category || "General",
       logo: logo || "",
+      coordinator: coordinator || { name: "", email: "" },
+      convener: convener || { name: "", email: "" },
+      coConvener: coConvener || { name: "", email: "" },
+      meetingDay: meetingDay || "",
+      meetingTime: meetingTime || "",
+      meetingLocation: meetingLocation || "",
+      maxMembers: maxMembers || 50,
+      joinType: joinType || "approval",
+      clubEmail: clubEmail || "",
       facultyCoordinator: req.user.id,
       createdBy: req.user.id
     });
 
+    // Assign roles based on email addresses
+    const roleAssignments = [];
+    
+    // Assign convener as club_head
+    if (convener && convener.email) {
+      const convenerUser = await findAndUpdateUserRole(convener.email, "club_head", name);
+      if (convenerUser) {
+        roleAssignments.push({ email: convener.email, role: "club_head", status: "assigned" });
+      } else {
+        roleAssignments.push({ email: convener.email, role: "club_head", status: "pending_registration" });
+      }
+    }
+
+    // Assign co-convener as coordinator
+    if (coConvener && coConvener.email) {
+      const coConvenerUser = await findAndUpdateUserRole(coConvener.email, "coordinator", name);
+      if (coConvenerUser) {
+        roleAssignments.push({ email: coConvener.email, role: "coordinator", status: "assigned" });
+      } else {
+        roleAssignments.push({ email: coConvener.email, role: "coordinator", status: "pending_registration" });
+      }
+    }
+
     res.status(201).json({
       message: "Club created successfully, pending admin approval",
-      club
+      club,
+      roleAssignments
     });
   } catch (err) {
     if (err.code === 11000) {
@@ -28,13 +107,51 @@ exports.createClub = async (req, res) => {
   }
 };
 
+// Get user by email (for validation)
+exports.getUserByEmail = async (req, res) => {
+  try {
+    const { email } = req.params;
+    
+    const user = await User.findOne({ email: email.toLowerCase() }).select("-password");
+    
+    if (user) {
+      res.json({ exists: true, user });
+    } else {
+      res.json({ exists: false, message: "User not found" });
+    }
+  } catch (err) {
+    res.status(500).json({ message: "Server error: " + err.message });
+  }
+};
+
 // Get teacher's clubs (clubs created by the teacher)
 exports.getTeacherClubs = async (req, res) => {
   try {
-    const clubs = await Club.find({ createdBy: req.user.id })
+    const user = await User.findById(req.user.id);
+    const userEmail = user?.email?.toLowerCase();
+    
+    // Get clubs created by the user
+    let clubs = await Club.find({ createdBy: req.user.id })
       .populate("createdBy", "name email")
       .populate("facultyCoordinator", "name email")
       .sort({ createdAt: -1 });
+    
+    // Also check if user is a convener in any club (for students assigned as club heads)
+    if (userEmail) {
+      const convenerClubs = await Club.find({
+        "convener.email": userEmail,
+        status: "approved"
+      }).populate("createdBy", "name email")
+        .populate("facultyCoordinator", "name email");
+      
+      // Merge clubs, avoiding duplicates
+      const existingIds = clubs.map(c => c._id.toString());
+      convenerClubs.forEach(club => {
+        if (!existingIds.includes(club._id.toString())) {
+          clubs.push(club);
+        }
+      });
+    }
     
     res.json(clubs);
   } catch (err) {
@@ -46,7 +163,21 @@ exports.getTeacherClubs = async (req, res) => {
 exports.updateClub = async (req, res) => {
   try {
     const { clubId } = req.params;
-    const { name, description, category, logo } = req.body;
+    const { 
+      name, 
+      description, 
+      category, 
+      logo,
+      coordinator,
+      convener,
+      coConvener,
+      meetingDay,
+      meetingTime,
+      meetingLocation,
+      maxMembers,
+      joinType,
+      clubEmail
+    } = req.body;
 
     const club = await Club.findById(clubId);
 
@@ -59,11 +190,36 @@ exports.updateClub = async (req, res) => {
       return res.status(403).json({ message: "You can only update your own clubs" });
     }
 
-    // Update fields
+    // Update basic fields
     if (name) club.name = name;
     if (description) club.description = description;
     if (category) club.category = category;
     if (logo !== undefined) club.logo = logo;
+
+    // Update leadership fields
+    if (coordinator) club.coordinator = coordinator;
+    if (convener) club.convener = convener;
+    if (coConvener) club.coConvener = coConvener;
+
+    // Update user roles when leadership changes
+    if (convener && convener.email) {
+      await findAndUpdateUserRole(convener.email, "club_head", club.name);
+    }
+    if (coConvener && coConvener.email) {
+      await findAndUpdateUserRole(coConvener.email, "coordinator", club.name);
+    }
+
+    // Update meeting details
+    if (meetingDay !== undefined) club.meetingDay = meetingDay;
+    if (meetingTime !== undefined) club.meetingTime = meetingTime;
+    if (meetingLocation !== undefined) club.meetingLocation = meetingLocation;
+
+    // Update membership settings
+    if (maxMembers !== undefined) club.maxMembers = maxMembers;
+    if (joinType) club.joinType = joinType;
+
+    // Update contact details
+    if (clubEmail !== undefined) club.clubEmail = clubEmail;
 
     await club.save();
 
@@ -167,9 +323,13 @@ exports.getClubs = async (req, res) => {
   try {
     let query = {};
 
-    // Admin sees all clubs
+    // Admin sees all clubs (including pending, approved, rejected)
     if (req.user.role === "admin") {
-      // No filter
+      // No filter - admin sees all clubs
+    }
+    // Teachers see approved clubs
+    else if (req.user.role === "teacher") {
+      query.status = "approved";
     }
     // Club heads see approved clubs
     else if (req.user.role === "club_head") {
@@ -178,6 +338,7 @@ exports.getClubs = async (req, res) => {
     // Coordinators see clubs they're members of
     else if (req.user.role === "coordinator") {
       query.members = req.user.id;
+      query.status = "approved";
     }
     // Students see approved clubs
     else {
@@ -350,6 +511,35 @@ exports.getMyClubs = async (req, res) => {
 
     res.json(clubs);
   } catch (err) {
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+// Check if user is a convener in any approved club
+exports.checkConvenerStatus = async (req, res) => {
+  try {
+    const User = require("../models/User");
+    
+    // Get the current user's email
+    const user = await User.findById(req.user.id);
+    if (!user) {
+      return res.json({ isConvener: false });
+    }
+
+    const userEmail = user.email.toLowerCase();
+
+    // Check if user is listed as convener in any approved club
+    const clubsAsConvener = await Club.find({
+      "convener.email": userEmail,
+      status: "approved"
+    });
+
+    res.json({ 
+      isConvener: clubsAsConvener.length > 0,
+      clubs: clubsAsConvener
+    });
+  } catch (err) {
+    console.error("Error checking convener status:", err);
     res.status(500).json({ message: "Server error" });
   }
 };

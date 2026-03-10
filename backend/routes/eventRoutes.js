@@ -1,8 +1,16 @@
 const router = require("express").Router();
 const eventController = require("../controllers/eventController");
+const { isAuthenticated, authorizeRoles } = require("../middleware/authMiddleware");
 
 // ============================================
-// TEACHER ROUTES
+// ALL ROUTES REQUIRE AUTHENTICATION
+// ============================================
+
+// Apply authentication to all event routes
+router.use(isAuthenticated);
+
+// ============================================
+// TEACHER/CLUB HEAD ROUTES
 // ============================================
 
 // Create a new event
@@ -40,6 +48,11 @@ router.get("/:eventId/participants", async (req, res) => {
   await eventController.getEventParticipants(req, res);
 });
 
+// Verify payment for a registration
+router.patch("/:eventId/participants/:registrationId/verify", async (req, res) => {
+  await eventController.verifyPayment(req, res);
+});
+
 // ============================================
 // STUDENT ROUTES
 // ============================================
@@ -62,6 +75,25 @@ router.get("/student/registrations", async (req, res) => {
 // Get student dashboard stats
 router.get("/student/stats", async (req, res) => {
   await eventController.getStudentStats(req, res);
+});
+
+// ============================================
+// ADMIN ROUTES
+// ============================================
+
+// Get all pending events for admin approval
+router.get("/admin/pending", authorizeRoles("admin"), async (req, res) => {
+  await eventController.getPendingEvents(req, res);
+});
+
+// Approve or reject an event
+router.patch("/admin/:eventId/approve", authorizeRoles("admin"), async (req, res) => {
+  await eventController.approveEvent(req, res);
+});
+
+// Get all events (for admin)
+router.get("/admin/all", authorizeRoles("admin"), async (req, res) => {
+  await eventController.getAllEventsAdmin(req, res);
 });
 
 module.exports = router;

@@ -8,141 +8,308 @@ const AdminDashboard = ({ user }) => {
   const { logout } = useContext(AuthContext);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [activeSection, setActiveSection] = useState("dashboard");
-  const [dashboardData, setDashboardData] = useState(null);
-  const [pendingClubs, setPendingClubs] = useState([]);
+  
+  // Dashboard state
+  const [dashboardStats, setDashboardStats] = useState({
+    totalUsers: 0,
+    totalClubs: 0,
+    pendingClubs: 0,
+    activeClubs: 0,
+    totalEvents: 0,
+    roleRequests: 0
+  });
+  
+  // Data state
   const [allClubs, setAllClubs] = useState([]);
+  const [pendingClubs, setPendingClubs] = useState([]);
   const [allUsers, setAllUsers] = useState([]);
   const [roleRequests, setRoleRequests] = useState([]);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [filterRole, setFilterRole] = useState("all");
-  const [activeTab, setActiveTab] = useState("overview");
+  const [loading, setLoading] = useState(true);
+  
+  // Event state
+  const [allEvents, setAllEvents] = useState([]);
+  const [pendingEvents, setPendingEvents] = useState([]);
+  
+  // Modal state
+  const [selectedClub, setSelectedClub] = useState(null);
+  const [showClubDetails, setShowClubDetails] = useState(false);
+  const [success, setSuccess] = useState("");
+  const [error, setError] = useState("");
 
   useEffect(() => {
     fetchDashboardData();
   }, []);
 
+  useEffect(() => {
+    if (activeSection === "clubs") {
+      fetchAllClubs();
+    } else if (activeSection === "students") {
+      fetchAllUsers("student");
+    } else if (activeSection === "teachers") {
+      fetchAllUsers("teacher");
+    } else if (activeSection === "events") {
+      fetchAllEvents();
+    }
+  }, [activeSection]);
+
   const fetchDashboardData = async () => {
+    setLoading(true);
     try {
       const token = localStorage.getItem("token");
       
-      // Fetch user stats
-      const statsRes = await fetch("http://localhost:5000/api/admin/stats", {
+      // Fetch stats - using correct endpoint /api/stats
+      const statsRes = await fetch("http://localhost:5000/api/stats", {
         headers: { Authorization: `Bearer ${token}` }
       });
-      const statsData = await statsRes.json();
+      const statsData = statsRes.ok ? await statsRes.json() : { userStats: [], clubStats: [], pendingRoleRequests: 0 };
 
-      // Fetch pending clubs
+      // Fetch clubs
       const clubsRes = await fetch("http://localhost:5000/api/clubs", {
         headers: { Authorization: `Bearer ${token}` }
       });
-      const clubsData = await clubsRes.json();
+      const clubsData = clubsRes.ok ? await clubsRes.json() : [];
 
-      // Fetch users
-      const usersRes = await fetch("http://localhost:5000/api/admin/users", {
+      // Fetch users - using correct endpoint /api/users
+      const usersRes = await fetch("http://localhost:5000/api/users", {
         headers: { Authorization: `Bearer ${token}` }
       });
-      const usersData = await usersRes.json();
+      const usersData = usersRes.ok ? await usersRes.json() : [];
 
-      // Fetch role requests
-      const requestsRes = await fetch("http://localhost:5000/api/admin/role-requests", {
+      // Fetch role requests - using correct endpoint /api/role-requests
+      const requestsRes = await fetch("http://localhost:5000/api/role-requests", {
         headers: { Authorization: `Bearer ${token}` }
       });
-      const requestsData = await requestsRes.json();
+      const requestsData = requestsRes.ok ? await requestsRes.json() : [];
 
-      setDashboardData({ userStats: statsData.userStats || [] });
+      // Calculate stats from userStats array
+      const userStats = statsData.userStats || [];
+      const totalUsers = userStats.reduce((acc, s) => acc + s.count, 0);
+      
+      const totalClubs = clubsData.length;
+      const pendingClubs = clubsData.filter(c => c.status === "pending").length;
+      const activeClubs = clubsData.filter(c => c.status === "approved").length;
+      
+      setDashboardStats({
+        totalUsers,
+        totalClubs,
+        pendingClubs,
+        activeClubs,
+        totalEvents: 0,
+        roleRequests: requestsData.length || statsData.pendingRoleRequests || 0
+      });
+      
       setPendingClubs(clubsData.filter(c => c.status === "pending"));
       setAllClubs(clubsData);
       setAllUsers(usersData || []);
       setRoleRequests(requestsData.filter(r => r.status === "pending"));
-    } catch (error) {
-      console.error("Error fetching dashboard data:", error);
-      // Use sample data if API fails
-      setDashboardData({
-        userStats: [
-          { _id: "student", count: 450 },
-          { _id: "teacher", count: 35 },
-          { _id: "club_head", count: 12 }
-        ],
-        features: [
-          "Manage all clubs and events",
-          "Approve/reject club requests",
-          "User management",
-          "View analytics and reports"
-        ]
+    } catch (err) {
+      console.error("Error fetching dashboard data:", err);
+      setDashboardStats({
+        totalUsers: 0,
+        totalClubs: 0,
+        pendingClubs: 0,
+        activeClubs: 0,
+        totalEvents: 0,
+        roleRequests: 0
       });
-      setPendingClubs([
-        { _id: 1, name: "Photography Club", description: "Capture beautiful moments", createdBy: { name: "John Doe", email: "john@campus.edu" } }
-      ]);
-      setAllClubs([
-        { _id: 1, name: "Coding Club", description: "Programming enthusiasts", status: "approved", members: [1,2,3] },
-        { _id: 2, name: "Robotics Club", description: "Build amazing robots", status: "approved", members: [1,2] }
-      ]);
-      setAllUsers([
-        { _id: 1, name: "John Smith", email: "john@campus.edu", role: "student" },
-        { _id: 2, name: "Dr. Sharma", email: "sharma@campus.edu", role: "teacher" }
-      ]);
-      setRoleRequests([]);
+    }
+    setLoading(false);
+  };
+
+  const fetchAllClubs = async () => {
+    setLoading(true);
+    try {
+      const token = localStorage.getItem("token");
+      const response = await fetch("http://localhost:5000/api/clubs", {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setAllClubs(data);
+        setPendingClubs(data.filter(c => c.status === "pending"));
+      }
+    } catch (err) {
+      console.error("Error fetching clubs:", err);
+    }
+    setLoading(false);
+  };
+
+  const fetchAllUsers = async (role) => {
+    setLoading(true);
+    try {
+      const token = localStorage.getItem("token");
+      const response = await fetch("http://localhost:5000/api/users", {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setAllUsers(data.filter(u => u.role === role));
+      }
+    } catch (err) {
+      console.error("Error fetching users:", err);
+    }
+    setLoading(false);
+  };
+
+  const fetchAllEvents = async () => {
+    setLoading(true);
+    try {
+      const token = localStorage.getItem("token");
+      // Fetch all events for admin
+      const response = await fetch("http://localhost:5000/api/events/admin/all", {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setAllEvents(data);
+      }
+      
+      // Fetch pending events
+      const pendingResponse = await fetch("http://localhost:5000/api/events/admin/pending", {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (pendingResponse.ok) {
+        const pendingData = await pendingResponse.json();
+        setPendingEvents(pendingData);
+      }
+    } catch (err) {
+      console.error("Error fetching events:", err);
+    }
+    setLoading(false);
+  };
+
+  const handleApproveEvent = async (eventId, status) => {
+    setError("");
+    setSuccess("");
+    try {
+      const token = localStorage.getItem("token");
+      const response = await fetch(`http://localhost:5000/api/events/admin/${eventId}/approve`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({ status })
+      });
+      
+      if (response.ok) {
+        setSuccess(`Event ${status} successfully!`);
+        fetchAllEvents(); // Refresh events list
+        fetchDashboardData(); // Update dashboard stats
+        setTimeout(() => setSuccess(""), 3000);
+      } else {
+        const data = await response.json();
+        setError(data.message || "Failed to update event status");
+      }
+    } catch (err) {
+      setError("Network error. Please try again.");
     }
   };
 
   const handleApproveClub = async (clubId, status) => {
+    setError("");
+    setSuccess("");
     try {
       const token = localStorage.getItem("token");
-      await fetch(`http://localhost:5000/api/clubs/${clubId}/status`, {
-        method: "PUT",
+      const response = await fetch(`http://localhost:5000/api/clubs/${clubId}/approve`, {
+        method: "PATCH",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`
         },
         body: JSON.stringify({ status })
       });
-      fetchDashboardData();
-    } catch (error) {
-      console.error("Error updating club:", error);
+      
+      if (response.ok) {
+        setSuccess(`Club ${status} successfully!`);
+        fetchDashboardData();
+        setTimeout(() => setSuccess(""), 3000);
+      } else {
+        setError("Failed to update club status");
+      }
+    } catch (err) {
+      setError("Network error. Please try again.");
     }
   };
 
   const handleDeleteClub = async (clubId) => {
+    if (!window.confirm("Are you sure you want to delete this club?")) return;
+    setError("");
+    setSuccess("");
+    
     try {
       const token = localStorage.getItem("token");
-      await fetch(`http://localhost:5000/api/clubs/${clubId}`, {
+      const response = await fetch(`http://localhost:5000/api/clubs/${clubId}`, {
         method: "DELETE",
         headers: { Authorization: `Bearer ${token}` }
       });
-      fetchDashboardData();
-    } catch (error) {
-      console.error("Error deleting club:", error);
+      
+      if (response.ok) {
+        setSuccess("Club deleted successfully!");
+        fetchDashboardData();
+        setTimeout(() => setSuccess(""), 3000);
+      } else {
+        setError("Failed to delete club");
+      }
+    } catch (err) {
+      setError("Network error. Please try again.");
     }
   };
 
   const handleDeleteUser = async (userId) => {
+    if (!window.confirm("Are you sure you want to delete this user?")) return;
+    setError("");
+    setSuccess("");
+    
     try {
       const token = localStorage.getItem("token");
-      await fetch(`http://localhost:5000/api/admin/users/${userId}`, {
+      const response = await fetch(`http://localhost:5000/api/users/${userId}`, {
         method: "DELETE",
         headers: { Authorization: `Bearer ${token}` }
       });
-      fetchDashboardData();
-    } catch (error) {
-      console.error("Error deleting user:", error);
+      
+      if (response.ok) {
+        setSuccess("User deleted successfully!");
+        fetchDashboardData();
+        setTimeout(() => setSuccess(""), 3000);
+      } else {
+        setError("Failed to delete user");
+      }
+    } catch (err) {
+      setError("Network error. Please try again.");
     }
   };
 
   const handleRoleRequest = async (requestId, status) => {
+    setError("");
+    setSuccess("");
+    
     try {
       const token = localStorage.getItem("token");
-      await fetch(`http://localhost:5000/api/admin/role-requests/${requestId}`, {
-        method: "PUT",
+      const response = await fetch(`http://localhost:5000/api/role-requests/${requestId}`, {
+        method: "PATCH",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`
         },
         body: JSON.stringify({ status })
       });
-      fetchDashboardData();
-    } catch (error) {
-      console.error("Error updating role request:", error);
+      
+      if (response.ok) {
+        setSuccess(`Role request ${status}!`);
+        fetchDashboardData();
+        setTimeout(() => setSuccess(""), 3000);
+      } else {
+        setError("Failed to update role request");
+      }
+    } catch (err) {
+      setError("Network error. Please try again.");
     }
+  };
+
+  const handleViewClub = (club) => {
+    setSelectedClub(club);
+    setShowClubDetails(true);
   };
 
   const toggleSidebar = () => setSidebarCollapsed(!sidebarCollapsed);
@@ -153,20 +320,338 @@ const AdminDashboard = ({ user }) => {
     window.location.reload();
   };
 
-  // Filter users based on search and role
-  const filteredUsers = allUsers.filter(u => {
-    const matchesSearch = u.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         u.email?.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesRole = filterRole === "all" || u.role === filterRole;
-    return matchesSearch && matchesRole;
-  });
+  // ==================== RENDER SECTIONS ====================
+  const renderDashboard = () => (
+    <>
+      <section className="admin-welcome-section">
+        <div className="admin-welcome-content">
+          <div className="admin-welcome-text">
+            <h2>Welcome back, {user?.name || 'Admin'}!</h2>
+            <p>Here's what's happening in your campus today.</p>
+          </div>
+        </div>
+      </section>
 
-  // Calculate stats
-  const totalUsers = dashboardData?.userStats?.reduce((acc, s) => acc + s.count, 0) || 0;
+      {/* Stats Cards */}
+      <section className="admin-stats-grid">
+        <div className="admin-stat-card">
+          <div className="admin-stat-icon" style={{ background: 'linear-gradient(135deg, #667eea, #764ba2)' }}>👥</div>
+          <div className="admin-stat-info">
+            <h3>{dashboardStats.totalUsers}</h3>
+            <p>Total Users</p>
+          </div>
+        </div>
+        <div className="admin-stat-card">
+          <div className="admin-stat-icon" style={{ background: 'linear-gradient(135deg, #f093fb, #f5576c)' }}>🏛</div>
+          <div className="admin-stat-info">
+            <h3>{dashboardStats.totalClubs}</h3>
+            <p>Total Clubs</p>
+          </div>
+        </div>
+        <div className="admin-stat-card">
+          <div className="admin-stat-icon" style={{ background: 'linear-gradient(135deg, #4facfe, #00f2fe)' }}>⏳</div>
+          <div className="admin-stat-info">
+            <h3>{dashboardStats.pendingClubs}</h3>
+            <p>Pending Clubs</p>
+          </div>
+        </div>
+        <div className="admin-stat-card">
+          <div className="admin-stat-icon" style={{ background: 'linear-gradient(135deg, #43e97b, #38f9d7)' }}>✅</div>
+          <div className="admin-stat-info">
+            <h3>{dashboardStats.activeClubs}</h3>
+            <p>Active Clubs</p>
+          </div>
+        </div>
+        <div className="admin-stat-card">
+          <div className="admin-stat-icon" style={{ background: 'linear-gradient(135deg, #fa709a, #fee140)' }}>📝</div>
+          <div className="admin-stat-info">
+            <h3>{dashboardStats.roleRequests}</h3>
+            <p>Role Requests</p>
+          </div>
+        </div>
+      </section>
 
+      {/* Pending Approvals */}
+      {pendingClubs.length > 0 && (
+        <section className="admin-pending-section">
+          <div className="admin-section-header">
+            <h3>Pending Club Approvals</h3>
+          </div>
+          <div className="admin-pending-grid">
+            {pendingClubs.map(club => (
+              <div key={club._id} className="admin-pending-card">
+                <div className="admin-pending-info">
+                  <h4>{club.name}</h4>
+                  <p>{club.description}</p>
+                  <span className="admin-status-badge pending">Pending</span>
+                </div>
+                <div className="admin-pending-actions">
+                  <button className="admin-btn-approve" onClick={() => handleApproveClub(club._id, "approved")}>
+                    Approve
+                  </button>
+                  <button className="admin-btn-reject" onClick={() => handleApproveClub(club._id, "rejected")}>
+                    Reject
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {/* Role Requests */}
+      {roleRequests.length > 0 && (
+        <section className="admin-requests-section">
+          <div className="admin-section-header">
+            <h3>Pending Role Requests</h3>
+          </div>
+          <div className="admin-requests-grid">
+            {roleRequests.slice(0, 5).map(request => (
+              <div key={request._id} className="admin-request-card">
+                <div className="admin-request-info">
+                  <h4>{request.userId?.name || "Unknown"}</h4>
+                  <p>{request.userId?.email}</p>
+                  <span className="admin-role-badge">{request.requestedRole}</span>
+                </div>
+                <div className="admin-request-actions">
+                  <button className="admin-btn-approve" onClick={() => handleRoleRequest(request._id, "approved")}>
+                    Approve
+                  </button>
+                  <button className="admin-btn-reject" onClick={() => handleRoleRequest(request._id, "rejected")}>
+                    Reject
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+    </>
+  );
+
+  const renderClubs = () => (
+    <section className="admin-clubs-section">
+      <div className="admin-section-header">
+        <h3>All Clubs</h3>
+        <span className="admin-count">{allClubs.length} clubs</span>
+      </div>
+
+      {success && <div className="admin-success-message">{success}</div>}
+      {error && <div className="admin-error-message">{error}</div>}
+
+      {loading ? (
+        <div className="admin-loading">Loading clubs...</div>
+      ) : allClubs.length > 0 ? (
+        <div className="admin-clubs-grid">
+          {allClubs.map(club => (
+            <div key={club._id} className="admin-club-card">
+              <div className="admin-club-logo">
+                {club.logo ? <img src={club.logo} alt={club.name} /> : <span>🏛</span>}
+              </div>
+              <div className="admin-club-info">
+                <h4>{club.name}</h4>
+                <p className="admin-club-description">{club.description}</p>
+                <div className="admin-club-stats">
+                  <span>{club.members?.length || 0} Members</span>
+                </div>
+                <span className={`admin-status-badge ${club.status}`}>{club.status}</span>
+              </div>
+              <div className="admin-club-actions">
+                <button className="admin-btn-view" onClick={() => handleViewClub(club)}>View</button>
+                {club.status === "pending" && (
+                  <>
+                    <button className="admin-btn-approve" onClick={() => handleApproveClub(club._id, "approved")}>Approve</button>
+                    <button className="admin-btn-reject" onClick={() => handleApproveClub(club._id, "rejected")}>Reject</button>
+                  </>
+                )}
+                <button className="admin-btn-delete" onClick={() => handleDeleteClub(club._id)}>Delete</button>
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div className="admin-empty-state">
+          <p>No clubs found.</p>
+        </div>
+      )}
+    </section>
+  );
+
+  const renderUsers = (userRole) => (
+    <section className="admin-users-section">
+      <div className="admin-section-header">
+        <h3>{userRole === "student" ? "Students" : "Teachers"}</h3>
+        <span className="admin-count">{allUsers.length} {userRole}s</span>
+      </div>
+
+      {success && <div className="admin-success-message">{success}</div>}
+      {error && <div className="admin-error-message">{error}</div>}
+
+      {loading ? (
+        <div className="admin-loading">Loading users...</div>
+      ) : allUsers.length > 0 ? (
+        <div className="admin-users-table-container">
+          <table className="admin-users-table">
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Email</th>
+                <th>Role</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {allUsers.map(u => (
+                <tr key={u._id}>
+                  <td><strong>{u.name}</strong></td>
+                  <td>{u.email}</td>
+                  <td><span className="admin-role-badge">{u.role}</span></td>
+                  <td>
+                    <button className="admin-btn-delete" onClick={() => handleDeleteUser(u._id)}>Delete</button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      ) : (
+        <div className="admin-empty-state">
+          <p>No {userRole}s found.</p>
+        </div>
+      )}
+    </section>
+  );
+
+  const renderEvents = () => (
+    <section className="admin-events-section">
+      {/* Pending Events Section */}
+      {pendingEvents.length > 0 && (
+        <div className="admin-pending-section">
+          <div className="admin-section-header">
+            <h3>⏳ Pending Event Approvals</h3>
+            <span className="admin-count">{pendingEvents.length} pending</span>
+          </div>
+          <div className="admin-pending-grid">
+            {pendingEvents.map(event => (
+              <div key={event._id} className="admin-pending-card">
+                <div className="admin-pending-info">
+                  <h4>{event.eventName}</h4>
+                  <p><strong>Club:</strong> {event.clubName}</p>
+                  <p><strong>Date:</strong> {event.date}</p>
+                  <p><strong>Time:</strong> {event.startTime}</p>
+                  <p><strong>Teacher:</strong> {event.teacherName}</p>
+                  <span className="admin-status-badge pending">{event.approvalStatus}</span>
+                </div>
+                <div className="admin-pending-actions">
+                  <button className="admin-btn-approve" onClick={() => handleApproveEvent(event._id, "approved")}>
+                    Approve
+                  </button>
+                  <button className="admin-btn-reject" onClick={() => handleApproveEvent(event._id, "rejected")}>
+                    Reject
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* All Events Section */}
+      <div className="admin-section-header" style={{ marginTop: '20px' }}>
+        <h3>📅 All Events</h3>
+        <span className="admin-count">{allEvents.length} events</span>
+      </div>
+
+      {success && <div className="admin-success-message">{success}</div>}
+      {error && <div className="admin-error-message">{error}</div>}
+
+      {loading ? (
+        <div className="admin-loading">Loading events...</div>
+      ) : allEvents.length > 0 ? (
+        <div className="admin-clubs-grid">
+          {allEvents.map(event => (
+            <div key={event._id} className="admin-club-card">
+              <div className="admin-club-logo">
+                <span>📅</span>
+              </div>
+              <div className="admin-club-info">
+                <h4>{event.eventName}</h4>
+                <p className="admin-club-description">{event.description?.substring(0, 100)}...</p>
+                <div className="admin-club-stats">
+                  <span>🏛 {event.clubName}</span>
+                  <span>📅 {event.date}</span>
+                  <span>👥 {event.registrationCount || 0} registered</span>
+                </div>
+                <span className={`admin-status-badge ${event.approvalStatus}`}>{event.approvalStatus}</span>
+              </div>
+              <div className="admin-club-actions">
+                {event.approvalStatus === "pending" && (
+                  <>
+                    <button className="admin-btn-approve" onClick={() => handleApproveEvent(event._id, "approved")}>Approve</button>
+                    <button className="admin-btn-reject" onClick={() => handleApproveEvent(event._id, "rejected")}>Reject</button>
+                  </>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div className="admin-empty-state">
+          <p>No events found.</p>
+        </div>
+      )}
+    </section>
+  );
+
+  const renderProfile = () => (
+    <section className="admin-profile-section">
+      <div className="admin-profile-header">
+        <div className="admin-profile-avatar-large">
+          <img src={`https://ui-avatars.com/api/?name=${user?.name || 'Admin'}&background=2563EB&color=fff&size=150`} alt="Profile" />
+        </div>
+        <div className="admin-profile-info">
+          <h2>{user?.name || 'Admin'}</h2>
+          <p>{user?.email || 'admin@college.edu'}</p>
+          <span className="admin-role-badge">Admin</span>
+        </div>
+      </div>
+      <div className="admin-profile-details">
+        <div className="admin-detail-card">
+          <h4>System Stats</h4>
+          <p>Total Users: {dashboardStats.totalUsers}</p>
+          <p>Total Clubs: {dashboardStats.totalClubs}</p>
+          <p>Active Clubs: {dashboardStats.activeClubs}</p>
+        </div>
+      </div>
+    </section>
+  );
+
+  // ==================== MODALS ====================
+  const renderClubDetailsModal = () => {
+    if (!showClubDetails) return null;
+    return (
+      <div className="admin-modal-overlay" onClick={() => setShowClubDetails(false)}>
+        <div className="admin-modal" onClick={(e) => e.stopPropagation()}>
+          <div className="admin-modal-header">
+            <h3>{selectedClub?.name}</h3>
+            <button className="admin-modal-close" onClick={() => setShowClubDetails(false)}>×</button>
+          </div>
+          <div className="admin-modal-body">
+            <p><strong>Description:</strong> {selectedClub?.description}</p>
+            <p><strong>Category:</strong> {selectedClub?.category || "General"}</p>
+            <p><strong>Status:</strong> <span className={`admin-status-badge ${selectedClub?.status}`}>{selectedClub?.status}</span></p>
+            <p><strong>Members:</strong> {selectedClub?.members?.length || 0}</p>
+            <p><strong>Meeting:</strong> {selectedClub?.meetingDay} at {selectedClub?.meetingTime}</p>
+            <p><strong>Location:</strong> {selectedClub?.meetingLocation}</p>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  // ==================== MAIN RENDER ====================
   return (
     <div className="admin-dashboard">
-      {/* Sidebar */}
       <aside className={`admin-sidebar ${sidebarCollapsed ? 'collapsed' : ''}`}>
         <div className="admin-sidebar-header">
           <div className="admin-logo">
@@ -181,12 +666,12 @@ const AdminDashboard = ({ user }) => {
         <nav className="admin-sidebar-nav">
           <ul>
             <li className={activeSection === "dashboard" ? "active" : ""} onClick={() => setActiveSection("dashboard")}>
-              <span className="admin-nav-icon">🏠</span>
+              <span className="admin-nav-icon">📊</span>
               {!sidebarCollapsed && <span>Dashboard</span>}
             </li>
             <li className={activeSection === "clubs" ? "active" : ""} onClick={() => setActiveSection("clubs")}>
               <span className="admin-nav-icon">🏛</span>
-              {!sidebarCollapsed && <span>Manage Clubs</span>}
+              {!sidebarCollapsed && <span>Clubs</span>}
             </li>
             <li className={activeSection === "students" ? "active" : ""} onClick={() => setActiveSection("students")}>
               <span className="admin-nav-icon">👨‍🎓</span>
@@ -198,15 +683,11 @@ const AdminDashboard = ({ user }) => {
             </li>
             <li className={activeSection === "events" ? "active" : ""} onClick={() => setActiveSection("events")}>
               <span className="admin-nav-icon">📅</span>
-              {!sidebarCollapsed && <span>All Events</span>}
+              {!sidebarCollapsed && <span>Events</span>}
             </li>
-            <li className={activeSection === "announcements" ? "active" : ""} onClick={() => setActiveSection("announcements")}>
-              <span className="admin-nav-icon">📢</span>
-              {!sidebarCollapsed && <span>Announcements</span>}
-            </li>
-            <li className={activeSection === "settings" ? "active" : ""} onClick={() => setActiveSection("settings")}>
-              <span className="admin-nav-icon">⚙️</span>
-              {!sidebarCollapsed && <span>System Settings</span>}
+            <li className={activeSection === "profile" ? "active" : ""} onClick={() => setActiveSection("profile")}>
+              <span className="admin-nav-icon">👤</span>
+              {!sidebarCollapsed && <span>Profile</span>}
             </li>
             <li className="logout" onClick={handleLogout}>
               <span className="admin-nav-icon">🚪</span>
@@ -216,12 +697,17 @@ const AdminDashboard = ({ user }) => {
         </nav>
       </aside>
 
-      {/* Main Content */}
       <main className="admin-main-content">
-        {/* Top Navbar */}
         <header className="admin-top-navbar">
           <div className="admin-navbar-left">
-            <h1>Admin Dashboard</h1>
+            <h1>
+              {activeSection === "dashboard" && "Admin Dashboard"}
+              {activeSection === "clubs" && "Manage Clubs"}
+              {activeSection === "students" && "Students"}
+              {activeSection === "teachers" && "Teachers"}
+              {activeSection === "events" && "Events"}
+              {activeSection === "profile" && "My Profile"}
+            </h1>
           </div>
           <div className="admin-navbar-right">
             <div className="admin-notification">
@@ -229,444 +715,31 @@ const AdminDashboard = ({ user }) => {
               <span className="admin-notification-badge">{pendingClubs.length + roleRequests.length}</span>
             </div>
             <div className="admin-date-time">
-              <span>{new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</span>
+              <span>{new Date().toLocaleDateString()}</span>
             </div>
-            <div className="admin-profile-dropdown">
-              <img 
-                src={`https://ui-avatars.com/api/?name=${user?.name || 'Admin'}&background=2563EB&color=fff`} 
-                alt="Profile" 
-                className="admin-navbar-avatar" 
-              />
-              <div className="admin-dropdown-menu">
-                <div className="admin-dropdown-item">My Profile</div>
-                <div className="admin-dropdown-item">Settings</div>
-                <div className="admin-dropdown-item logout" onClick={handleLogout}>Logout</div>
-              </div>
+            <div className="admin-profile-dropdown" onClick={() => setActiveSection("profile")}>
+              <img src={`https://ui-avatars.com/api/?name=${user?.name || 'Admin'}&background=2563EB&color=fff`} alt="Profile" className="admin-navbar-avatar" />
             </div>
           </div>
         </header>
 
-        {/* Dashboard Content */}
-        <div className="admin-dashboard-content">
-          {/* Welcome Section */}
-          <section className="admin-welcome-section">
-            <div className="admin-welcome-content">
-              <div className="admin-welcome-text">
-                <h2>👋 Welcome back, {user?.name || 'Admin'}!</h2>
-                <p>Here's what's happening in your campus today.</p>
-              </div>
-            </div>
-          </section>
-
-          {/* System Overview Cards */}
-          <section className="admin-overview-section">
-            <div className="admin-overview-card">
-              <div className="admin-overview-icon">👨‍🎓</div>
-              <div className="admin-overview-info">
-                <h3>{totalUsers}</h3>
-                <p>Total Users</p>
-              </div>
-            </div>
-            <div className="admin-overview-card">
-              <div className="admin-overview-icon">🏛</div>
-              <div className="admin-overview-info">
-                <h3>{allClubs.length}</h3>
-                <p>Total Clubs</p>
-              </div>
-            </div>
-            <div className="admin-overview-card">
-              <div className="admin-overview-icon">⏳</div>
-              <div className="admin-overview-info">
-                <h3>{pendingClubs.length}</h3>
-                <p>Pending Clubs</p>
-              </div>
-            </div>
-            <div className="admin-overview-card">
-              <div className="admin-overview-icon">📝</div>
-              <div className="admin-overview-info">
-                <h3>{roleRequests.length}</h3>
-                <p>Role Requests</p>
-              </div>
-            </div>
-            <div className="admin-overview-card highlight">
-              <div className="admin-overview-icon">✅</div>
-              <div className="admin-overview-info">
-                <h3>{allClubs.filter(c => c.status === "approved").length}</h3>
-                <p>Active Clubs</p>
-              </div>
-            </div>
-          </section>
-
-          {/* Tabs */}
-          <div className="admin-dashboard-section">
-            <div style={{ borderBottom: "1px solid #eee", marginBottom: "20px", display: "flex", gap: "10px" }}>
-              <button 
-                className={`admin-btn ${activeTab === "overview" ? "admin-btn-primary" : "admin-btn-secondary"}`}
-                onClick={() => setActiveTab("overview")}
-              >
-                📊 Overview
-              </button>
-              <button 
-                className={`admin-btn ${activeTab === "clubs" ? "admin-btn-primary" : "admin-btn-secondary"}`}
-                onClick={() => setActiveTab("clubs")}
-              >
-                🏢 Club Management
-              </button>
-              <button 
-                className={`admin-btn ${activeTab === "users" ? "admin-btn-primary" : "admin-btn-secondary"}`}
-                onClick={() => setActiveTab("users")}
-              >
-                👥 User Management
-              </button>
-              <button 
-                className={`admin-btn ${activeTab === "requests" ? "admin-btn-primary" : "admin-btn-secondary"}`}
-                onClick={() => setActiveTab("requests")}
-              >
-                📝 Role Requests
-              </button>
-            </div>
-
-            {/* Overview Tab */}
-            {activeTab === "overview" && (
-              <div>
-                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: "20px" }}>
-                  <div>
-                    <h3 style={{ marginBottom: "15px", color: "var(--admin-primary-dark)" }}>📈 User Statistics</h3>
-                    <div style={{ background: "var(--admin-light-bg)", borderRadius: "12px", padding: "20px" }}>
-                      {dashboardData?.userStats?.map((stat, index) => (
-                        <div key={index} style={{ 
-                          display: "flex", 
-                          justifyContent: "space-between", 
-                          padding: "12px 0",
-                          borderBottom: index < dashboardData.userStats.length - 1 ? "1px solid var(--admin-light-gray)" : "none"
-                        }}>
-                          <span style={{ textTransform: "capitalize", fontWeight: "500" }}>{stat._id || "Unknown"}</span>
-                          <strong style={{ color: "var(--admin-primary-blue)" }}>{stat.count}</strong>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div>
-                    <h3 style={{ marginBottom: "15px", color: "var(--admin-primary-dark)" }}>⏳ Pending Approvals</h3>
-                    <div style={{ display: "grid", gap: "10px" }}>
-                      <div style={{ 
-                        padding: "15px", 
-                        background: pendingClubs.length > 0 ? "#fff3cd" : "#d4edda",
-                        borderRadius: "8px",
-                        display: "flex",
-                        justifyContent: "space-between",
-                        alignItems: "center"
-                      }}>
-                        <span>🏢 Pending Clubs</span>
-                        <strong>{pendingClubs.length}</strong>
-                      </div>
-                      <div style={{ 
-                        padding: "15px", 
-                        background: roleRequests.length > 0 ? "#fff3cd" : "#d4edda",
-                        borderRadius: "8px",
-                        display: "flex",
-                        justifyContent: "space-between",
-                        alignItems: "center"
-                      }}>
-                        <span>📝 Role Requests</span>
-                        <strong>{roleRequests.length}</strong>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                <div style={{ marginTop: "20px" }}>
-                  <h3 style={{ marginBottom: "15px", color: "var(--admin-primary-dark)" }}>✨ Admin Features</h3>
-                  <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(250px, 1fr))", gap: "10px" }}>
-                    {dashboardData?.features?.map((feature, index) => (
-                      <div key={index} style={{ 
-                        padding: "12px 15px", 
-                        background: "var(--admin-light-bg)", 
-                        borderRadius: "8px",
-                        borderLeft: "3px solid var(--admin-primary-blue)"
-                      }}>
-                        {feature}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Clubs Tab */}
-            {activeTab === "clubs" && (
-              <div>
-                {pendingClubs.length > 0 && (
-                  <div style={{ marginBottom: "30px" }}>
-                    <h3 style={{ color: "#ffc107", marginBottom: "15px" }}>⏳ Pending Approval ({pendingClubs.length})</h3>
-                    <div style={{ display: "grid", gap: "15px" }}>
-                      {pendingClubs.map(club => (
-                        <div key={club._id} style={{ 
-                          border: "2px solid #ffc107", 
-                          padding: "20px", 
-                          borderRadius: "12px",
-                          background: "#fffbf0"
-                        }}>
-                          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "start" }}>
-                            <div>
-                              <h4 style={{ margin: "0 0 8px 0", color: "var(--admin-primary-dark)" }}>{club.name}</h4>
-                              <p style={{ margin: "0 0 12px 0", color: "var(--admin-text-gray)" }}>{club.description}</p>
-                              <div style={{ display: "flex", alignItems: "center" }}>
-                                <div style={{ 
-                                  width: "35px", 
-                                  height: "35px", 
-                                  borderRadius: "50%", 
-                                  background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
-                                  color: "white",
-                                  display: "flex",
-                                  alignItems: "center",
-                                  justifyContent: "center",
-                                  marginRight: "10px",
-                                  fontWeight: "bold"
-                                }}>
-                                  {club.createdBy?.name?.charAt(0) || "?"}
-                                </div>
-                                <div>
-                                  <p style={{ margin: 0, fontSize: "0.9rem" }}>
-                                    <strong>{club.createdBy?.name || "Unknown"}</strong>
-                                  </p>
-                                  <p style={{ margin: 0, fontSize: "0.8rem", color: "var(--admin-text-gray)" }}>
-                                    {club.createdBy?.email}
-                                  </p>
-                                </div>
-                              </div>
-                            </div>
-                            <div style={{ display: "flex", gap: "8px" }}>
-                              <button
-                                className="admin-btn admin-btn-primary admin-btn-sm"
-                                onClick={() => handleApproveClub(club._id, "approved")}
-                              >
-                                ✓ Approve
-                              </button>
-                              <button
-                                className="admin-btn admin-btn-danger admin-btn-sm"
-                                onClick={() => handleApproveClub(club._id, "rejected")}
-                              >
-                                ✗ Reject
-                              </button>
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                <h3 style={{ marginBottom: "15px", color: "var(--admin-primary-dark)" }}>📋 All Clubs ({allClubs.length})</h3>
-                <div style={{ display: "grid", gap: "10px" }}>
-                  {allClubs.map(club => (
-                    <div key={club._id} style={{ 
-                      border: "1px solid var(--admin-light-gray)", 
-                      padding: "15px", 
-                      borderRadius: "8px",
-                      display: "flex",
-                      justifyContent: "space-between",
-                      alignItems: "center"
-                    }}>
-                      <div>
-                        <h4 style={{ margin: "0 0 5px 0", color: "var(--admin-primary-dark)" }}>
-                          {club.name}
-                          <span style={{ 
-                            marginLeft: "10px", 
-                            padding: "2px 8px", 
-                            borderRadius: "12px",
-                            fontSize: "0.75rem",
-                            background: club.status === "approved" ? "#d4edda" : 
-                                       club.status === "pending" ? "#fff3cd" : "#f8d7da",
-                            color: club.status === "approved" ? "#155724" : 
-                                   club.status === "pending" ? "#856404" : "#721c24"
-                          }}>
-                            {club.status}
-                          </span>
-                        </h4>
-                        <p style={{ margin: "0", color: "var(--admin-text-gray)" }}>{club.description}</p>
-                        <p style={{ margin: "5px 0 0 0", fontSize: "0.8rem", color: "var(--admin-text-gray)" }}>
-                          Members: {club.members?.length || 0}
-                        </p>
-                      </div>
-                      <button
-                        className="admin-btn admin-btn-danger admin-btn-sm"
-                        onClick={() => handleDeleteClub(club._id)}
-                      >
-                        🗑️ Delete
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Users Tab */}
-            {activeTab === "users" && (
-              <div>
-                <h3 style={{ marginBottom: "15px", color: "var(--admin-primary-dark)" }}>👥 User Management</h3>
-                <div style={{ marginBottom: "20px", display: "flex", gap: "10px" }}>
-                  <input
-                    type="text"
-                    placeholder="🔍 Search by name or email..."
-                    style={{
-                      padding: "10px 16px",
-                      border: "1px solid var(--admin-light-gray)",
-                      borderRadius: "8px",
-                      width: "300px",
-                      outline: "none"
-                    }}
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                  />
-                  <select
-                    style={{
-                      padding: "10px 16px",
-                      border: "1px solid var(--admin-light-gray)",
-                      borderRadius: "8px",
-                      outline: "none",
-                      cursor: "pointer"
-                    }}
-                    value={filterRole}
-                    onChange={(e) => setFilterRole(e.target.value)}
-                  >
-                    <option value="all">All Roles</option>
-                    <option value="student">Student</option>
-                    <option value="teacher">Teacher</option>
-                    <option value="club_head">Club Head</option>
-                    <option value="coordinator">Coordinator</option>
-                    <option value="admin">Admin</option>
-                  </select>
-                </div>
-
-                <div style={{ display: "grid", gap: "10px" }}>
-                  {filteredUsers.length === 0 ? (
-                    <p style={{ textAlign: "center", color: "var(--admin-text-gray)", padding: "40px" }}>No users found.</p>
-                  ) : (
-                    filteredUsers.map(u => (
-                      <div key={u._id} style={{ 
-                        border: "1px solid var(--admin-light-gray)", 
-                        padding: "15px", 
-                        borderRadius: "8px",
-                        display: "flex",
-                        justifyContent: "space-between",
-                        alignItems: "center"
-                      }}>
-                        <div style={{ display: "flex", alignItems: "center" }}>
-                          <div className="admin-user-avatar">
-                            {u.name?.charAt(0) || "?"}
-                          </div>
-                          <div style={{ marginLeft: "15px" }}>
-                            <p style={{ margin: "0", fontWeight: "600", color: "var(--admin-primary-dark)" }}>{u.name}</p>
-                            <p style={{ margin: "0", color: "var(--admin-text-gray)", fontSize: "0.9rem" }}>{u.email}</p>
-                          </div>
-                        </div>
-                        <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                          <span style={{ 
-                            padding: "4px 12px", 
-                            borderRadius: "12px",
-                            fontSize: "0.8rem",
-                            background: u.role === "admin" ? "#dc3545" :
-                                       u.role === "teacher" ? "#17a2b8" :
-                                       u.role === "club_head" ? "#ffc107" :
-                                       u.role === "coordinator" ? "#6f42c1" : "#28a745",
-                            color: "white",
-                            textTransform: "capitalize"
-                          }}>
-                            {u.role}
-                          </span>
-                          <button
-                            className="admin-btn admin-btn-danger admin-btn-sm"
-                            onClick={() => handleDeleteUser(u._id)}
-                          >
-                            🗑️
-                          </button>
-                        </div>
-                      </div>
-                    ))
-                  )}
-                </div>
-              </div>
-            )}
-
-            {/* Role Requests Tab */}
-            {activeTab === "requests" && (
-              <div>
-                <h3 style={{ marginBottom: "15px", color: "var(--admin-primary-dark)" }}>📝 Pending Role Requests</h3>
-                {roleRequests.length === 0 ? (
-                  <div style={{ 
-                    padding: "40px", 
-                    textAlign: "center", 
-                    background: "#d4edda", 
-                    borderRadius: "8px" 
-                  }}>
-                    <p style={{ margin: 0, color: "#155724" }}>✅ No pending role requests!</p>
-                  </div>
-                ) : (
-                  <div style={{ display: "grid", gap: "15px" }}>
-                    {roleRequests.map(request => (
-                      <div key={request._id} style={{ 
-                        border: "1px solid #ddd", 
-                        padding: "15px", 
-                        borderRadius: "8px",
-                        background: "#fffbf0"
-                      }}>
-                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "start" }}>
-                          <div>
-                            <h4 style={{ margin: "0 0 5px 0" }}>
-                              <span style={{ 
-                                padding: "2px 8px", 
-                                borderRadius: "4px",
-                                background: "#17a2b8",
-                                color: "white",
-                                fontSize: "0.8rem",
-                                marginRight: "8px"
-                              }}>
-                                {request.requestedRole}
-                              </span>
-                            </h4>
-                            <p style={{ margin: "0 0 10px 0", color: "#666" }}>
-                              <strong>{request.userId?.name || "Unknown User"}</strong> ({request.userId?.email})
-                            </p>
-                            {request.clubId && (
-                              <p style={{ margin: "0", fontSize: "0.9rem", color: "#666" }}>
-                                For Club: <strong>{request.clubId.name}</strong>
-                              </p>
-                            )}
-                            {request.description && (
-                              <p style={{ margin: "10px 0 0 0", fontSize: "0.9rem" }}>
-                                Note: {request.description}
-                              </p>
-                            )}
-                          </div>
-                          <div>
-                            <button
-                              className="admin-btn admin-btn-primary admin-btn-sm"
-                              onClick={() => handleRoleRequest(request._id, "approved")}
-                              style={{ marginRight: "8px" }}
-                            >
-                              ✓ Approve
-                            </button>
-                            <button
-                              className="admin-btn admin-btn-danger admin-btn-sm"
-                              onClick={() => handleRoleRequest(request._id, "rejected")}
-                            >
-                              ✗ Reject
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
+        <div className="admin-content-area">
+          {success && <div className="admin-success-message">{success}</div>}
+          {error && <div className="admin-error-message">{error}</div>}
+          
+          {activeSection === "dashboard" && renderDashboard()}
+          {activeSection === "clubs" && renderClubs()}
+          {activeSection === "students" && renderUsers("student")}
+          {activeSection === "teachers" && renderUsers("teacher")}
+          {activeSection === "events" && renderEvents()}
+          {activeSection === "profile" && renderProfile()}
         </div>
       </main>
+
+      {renderClubDetailsModal()}
     </div>
   );
 };
 
 export default AdminDashboard;
+

@@ -18,9 +18,11 @@ const Landing = () => {
   }, []);
 
   useEffect(() => {
-    if (user) {
-      navigate("/dashboard");
-    }
+    // Optional: Uncomment this to auto-redirect if already logged in
+    // But for now, we let users view the landing page even if logged in
+    // if (user) {
+    //   navigate("/dashboard");
+    // }
   }, [user, navigate]);
 
   const handleLoginClick = () => {
@@ -84,10 +86,10 @@ const Landing = () => {
             <li><a href="#contact" onClick={() => scrollToSection("contact")} style={{ color: '#fff', textDecoration: 'none', fontWeight: '500' }}>Contact</a></li>
           </ul>
           <button 
-            onClick={handleLoginClick}
+            onClick={user ? () => navigate("/dashboard") : handleLoginClick}
             style={{
               padding: '0.6rem 1.5rem',
-              background: 'linear-gradient(135deg, #2563EB, #3B82F6)',
+              background: user ? 'linear-gradient(135deg, #10B981, #059669)' : 'linear-gradient(135deg, #2563EB, #3B82F6)',
               color: '#fff',
               border: 'none',
               borderRadius: '8px',
@@ -104,7 +106,7 @@ const Landing = () => {
               e.target.style.boxShadow = 'none';
             }}
           >
-            Login
+            {user ? 'Go to Dashboard' : 'Login'}
           </button>
         </div>
       </nav>
