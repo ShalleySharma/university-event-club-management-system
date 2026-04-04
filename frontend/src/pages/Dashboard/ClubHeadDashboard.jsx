@@ -11,8 +11,9 @@ const ClubHeadDashboard = ({ user }) => {
   
   // State for data
   const [myClubs, setMyClubs] = useState([]);
-  const [allClubs, setAllClubs] = useState([]);
-  const [allEvents, setAllEvents] = useState([]);
+// const [allClubs, setAllClubs] = useState([]);
+const [allEvents, setAllEvents] = useState([]);
+  const [meetings, setMeetings] = useState([]);
   const [roleRequests, setRoleRequests] = useState([]);
   const [loading, setLoading] = useState(true);
   const [success, setSuccess] = useState("");
@@ -22,7 +23,7 @@ const ClubHeadDashboard = ({ user }) => {
   const [showClubDetails, setShowClubDetails] = useState(false);
   const [selectedClub, setSelectedClub] = useState(null);
   const [clubDetails, setClubDetails] = useState(null);
-  const [showEventModal, setShowEventModal] = useState(false);
+// const [showEventModal, setShowEventModal] = useState(false);
   const [showCreateEvent, setShowCreateEvent] = useState(false);
   const [newEvent, setNewEvent] = useState({
     eventName: "",
@@ -39,10 +40,13 @@ const ClubHeadDashboard = ({ user }) => {
       fetchDashboardData();
     } else if (activeSection === "clubs") {
       fetchMyClubs();
-      fetchAllClubs();
-    } else if (activeSection === "events") {
+      // fetchAllClubs();
+  } else if (activeSection === "events") {
       fetchAllEvents();
       fetchMyClubs();
+      console.log('ClubHead Events tab loaded');
+    } else if (activeSection === "meetings") {
+      fetchMeetings();
     } else if (activeSection === "requests") {
       fetchRoleRequests();
     }
@@ -95,34 +99,56 @@ const ClubHeadDashboard = ({ user }) => {
     setLoading(false);
   };
 
-  const fetchAllClubs = async () => {
-    try {
-      const token = localStorage.getItem("token");
-      const response = await fetch("http://localhost:5000/api/clubs", {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      if (response.ok) {
-        const data = await response.json();
-        setAllClubs(data);
-      }
-    } catch (err) {
-      console.error("Error fetching clubs:", err);
-    }
-  };
+// const fetchAllClubs = async () => {
+//   try {
+//     const token = localStorage.getItem("token");
+//     const response = await fetch("http://localhost:5000/api/clubs", {
+//       headers: { Authorization: `Bearer ${token}` }
+//     });
+//     if (response.ok) {
+//       const data = await response.json();
+//       setAllClubs(data);
+//     }
+//   } catch (err) {
+//     console.error("Error fetching clubs:", err);
+//   }
+// };
 
   const fetchAllEvents = async () => {
     setLoading(true);
     try {
       const token = localStorage.getItem("token");
-      const response = await fetch("http://localhost:5000/api/events/all", {
+      const response = await fetch("http://localhost:5000/api/events/club-head-events", {
         headers: { Authorization: `Bearer ${token}` }
       });
       if (response.ok) {
         const data = await response.json();
+        console.log('ClubHead events loaded:', data.length);
         setAllEvents(data);
+      } else {
+        console.error('ClubHead events fetch failed:', response.status, await response.text());
       }
     } catch (err) {
       console.error("Error fetching events:", err);
+    }
+    setLoading(false);
+  };
+
+  const fetchMeetings = async () => {
+    setLoading(true);
+    try {
+      const token = localStorage.getItem("token");
+      const response = await fetch("http://localhost:5000/api/meetings/my-meetings", {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setMeetings(data);
+      } else {
+        console.error('Meetings fetch failed:', response.status, response.statusText, await response.text());
+      }
+    } catch (err) {
+      console.error("Error fetching meetings:", err);
     }
     setLoading(false);
   };
@@ -205,6 +231,8 @@ const ClubHeadDashboard = ({ user }) => {
           location: "",
           maxParticipants: ""
         });
+        // Refetch events to show the newly created event immediately
+        fetchAllEvents();
         setTimeout(() => setSuccess(""), 3000);
       } else {
         const data = await response.json();
@@ -476,6 +504,60 @@ const ClubHeadDashboard = ({ user }) => {
     </section>
   );
 
+  const renderMeetings = () => (
+    <section className="student-events-full-section">
+      <div className="student-section-header">
+        <h3>👥 Meetings</h3>
+      </div>
+
+      {success && <div className="student-success-message">{success}</div>}
+      {error && <div className="student-error-message">{error}</div>}
+
+      {loading ? (
+        <div className="student-loading">Loading meetings...</div>
+      ) : meetings.length === 0 ? (
+        <div className="student-loading">No meetings scheduled.</div>
+      ) : (
+        <div className="student-events-grid-full">
+          {meetings.map(meeting => (
+            <div key={meeting._id} className="student-event-card-full">
+              <div className="student-event-header">
+                <span className="student-event-icon">👥</span>
+                <h4>{meeting.title}</h4>
+              </div>
+              <div className="student-event-details">
+                <p><span>🏛</span> {meeting.club?.name}</p>
+                <p><span>📅</span> {new Date(meeting.date).toLocaleDateString()}</p>
+                <p><span>🕒</span> {meeting.startTime} - {meeting.endTime}</p>
+                <p><span>📍</span> {meeting.location}</p>
+                <p><span>📊</span> {meeting.attendances?.length || 0} attendees</p>
+                {meeting.qrImage && (
+                  <img 
+                    src={meeting.qrImage} 
+                    alt="QR Code" 
+                    style={{width: '100px', height: '100px', marginTop: '10px', cursor: 'pointer'}} 
+                    title="Click to enlarge QR"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      const modal = document.createElement('div');
+                      modal.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.8);display:flex;align-items:center;justify-content:center;z-index:9999';
+                      modal.innerHTML = `<div style="background:white;padding:20px;border-radius:10px;text-align:center;max-width:90%;max-height:90%;overflow:auto;">
+                          <h3>${meeting.title} QR Code</h3>
+                          <img src="${meeting.qrImage}" style="width:300px;height:300px;border:1px solid #ddd;" />
+                          <br/><button style="margin-top:10px;padding:8px 16px;background:#2563eb;color:white;border:none;border-radius:4px;cursor:pointer;" onclick="(this.parentElement.parentElement).remove()">Close</button>
+                        </div>`;
+                      document.body.appendChild(modal);
+                    }}
+                  />
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </section>
+  );
+
   const renderRequests = () => (
     <section className="student-profile-section">
       <div className="student-section-header">
@@ -709,6 +791,10 @@ const ClubHeadDashboard = ({ user }) => {
               <span className="student-nav-icon">📅</span>
               {!sidebarCollapsed && <span>Events</span>}
             </li>
+            <li className={activeSection === "meetings" ? "active" : ""} onClick={() => setActiveSection("meetings")}>
+              <span className="student-nav-icon">👥</span>
+              {!sidebarCollapsed && <span>Meetings</span>}
+            </li>
             <li className={activeSection === "requests" ? "active" : ""} onClick={() => setActiveSection("requests")}>
               <span className="student-nav-icon">📋</span>
               {!sidebarCollapsed && <span>Requests</span>}
@@ -750,6 +836,7 @@ const ClubHeadDashboard = ({ user }) => {
           {activeSection === "dashboard" && renderDashboard()}
           {activeSection === "clubs" && renderClubs()}
           {activeSection === "events" && renderEvents()}
+          {activeSection === "meetings" && renderMeetings()}
           {activeSection === "requests" && renderRequests()}
           {activeSection === "profile" && renderProfile()}
         </div>

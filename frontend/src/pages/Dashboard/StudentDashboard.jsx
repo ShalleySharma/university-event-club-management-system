@@ -2,6 +2,10 @@ import React, { useState, useEffect, useContext } from "react";
 import { useNavigate } from "react-router-dom";
 import { AuthContext } from "../../context/AuthContext";
 import "./StudentDashboard.css";
+import renderMeetings from './renderMeetings';
+import fetchMeetings from './fetchMeetings';
+import RenderClubEvents from './renderClubEvents';
+import fetchClubEvents from './fetchClubEvents';
 
 const StudentDashboard = ({ user }) => {
   const navigate = useNavigate();
@@ -16,7 +20,11 @@ const StudentDashboard = ({ user }) => {
   const [myClubs, setMyClubs] = useState([]); // Clubs created by this user
   const [badges, setBadges] = useState([]); // Badges based on roles (convener, co-convener)
   const [allEvents, setAllEvents] = useState([]);
+  const [clubEvents, setClubEvents] = useState([]);
+  const [clubEventsLoading, setClubEventsLoading] = useState(false);
   const [registeredEvents, setRegisteredEvents] = useState([]);
+  const [meetings, setMeetings] = useState([]); 
+  const [meetingsLoading, setMeetingsLoading] = useState(false);
   const [loading, setLoading] = useState(true);
   const [success, setSuccess] = useState("");
   const [error, setError] = useState("");
@@ -48,6 +56,14 @@ const StudentDashboard = ({ user }) => {
     } else if (activeSection === "events") {
       fetchAllEvents();
       fetchRegisteredEvents();
+      fetchJoinedClubs().then(() => {
+        if (joinedClubs.length > 0) {
+          const clubIds = joinedClubs.map(c => c._id);
+          fetchClubEvents(setClubEvents, setClubEventsLoading, clubIds);
+        }
+      });
+    } else if (activeSection === "meetings") {
+      fetchMeetings(setMeetings, setMeetingsLoading);
     }
   }, [activeSection]);
 
@@ -265,6 +281,34 @@ const fetchJoinedClubs = async () => {
       }
     } catch (err) {
       setError("Network error. Please try again.");
+    }
+  };
+
+  const handleScanQR = async (meeting) => {
+    try {
+      // Get QR data from clipboard or prompt (real app uses camera scanner)
+      const qrData = prompt(`Scan QR for ${meeting.title}\\nPaste QR data here:`, `meeting:${meeting._id}:${Date.now()}`);
+      if (!qrData) return;
+
+      const token = localStorage.getItem("token");
+      const response = await fetch("http://localhost:5000/api/meetings/attendance/mark", {
+        method: "POST",
+        headers: { 
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}` 
+        },
+        body: JSON.stringify({ qrData })
+      });
+
+      if (response.ok) {
+        alert("Attendance marked! Waiting for approval.");
+        fetchMeetings(setMeetings, setMeetingsLoading);
+      } else {
+        const data = await response.json();
+        alert("Error: " + data.message);
+      }
+    } catch (err) {
+      alert("Network error");
     }
   };
 
@@ -494,45 +538,47 @@ const fetchJoinedClubs = async () => {
   );
 
   const renderEvents = () => (
-    <section className="student-events-full-section">
-      <div className="student-section-header">
-        <h3>📅 All Events</h3>
-        <span className="student-event-count">{allEvents.length} events available</span>
-      </div>
-
-      {success && <div className="student-success-message">{success}</div>}
-      {error && <div className="student-error-message">{error}</div>}
-
-      {loading ? (
-        <div className="student-loading">Loading events...</div>
-      ) : (
-        <div className="student-events-grid-full">
-          {allEvents.map(event => (
-            <div key={event._id} className="student-event-card-full">
-              <div className="student-event-header">
-                <span className="student-event-icon">📌</span>
-                <h4>{event.eventName}</h4>
-              </div>
-              <div className="student-event-details">
-                <p><span>🏛</span> {event.clubName}</p>
-                <p><span>📅</span> {event.date}</p>
-                <p><span>🕒</span> {event.time}</p>
-                <p><span>📍</span> {event.location}</p>
-                <p><span>👥</span> {event.registrationCount || 0} registered</p>
-              </div>
-              <div className="student-event-actions">
-                <button className="student-btn-details" onClick={() => handleViewEvent(event)}>View</button>
-                {event.isRegistered ? (
-                  <button className="student-btn-joined" disabled>✓ Registered</button>
-                ) : (
-                  <button className="student-btn-join" onClick={() => handleRegisterEvent(event._id)}>Register</button>
-                )}
-              </div>
-            </div>
-          ))}
+    <>
+      <section className="student-events-full-section">
+        <div className="student-section-header">
+          <h3>📅 All Events</h3>
+          <span className="student-event-count">{allEvents.length} events available</span>
         </div>
+        {loading ? (
+          <div className="student-loading">Loading events...</div>
+        ) : (
+          <div className="student-events-grid-full">
+            {allEvents.slice(0, 6).map(event => (
+              <div key={event._id} className="student-event-card-full">
+                <div className="student-event-header">
+                  <span className="student-event-icon">📌</span>
+                  <h4>{event.eventName}</h4>
+                </div>
+                <div className="student-event-details">
+                  <p><span>🏛</span> {event.clubName}</p>
+                  <p><span>📅</span> {event.date}</p>
+                  <p><span>🕒</span> {event.time}</p>
+                  <p><span>📍</span> {event.location}</p>
+                  <p><span>👥</span> {event.registrationCount || 0} registered</p>
+                </div>
+                <div className="student-event-actions">
+                  <button className="student-btn-details" onClick={() => handleViewEvent(event)}>View</button>
+                  {event.isRegistered ? (
+                    <button className="student-btn-joined" disabled>✓ Registered</button>
+                  ) : (
+                    <button className="student-btn-join" onClick={() => handleRegisterEvent(event._id)}>Register</button>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </section>
+
+{joinedClubs.length > 0 && (
+        <RenderClubEvents events={clubEvents} loading={clubEventsLoading} isStudent={true} />
       )}
-    </section>
+    </>
   );
 
   const renderProfile = () => (
@@ -683,6 +729,10 @@ const fetchJoinedClubs = async () => {
               <span className="student-nav-icon">📅</span>
               {!sidebarCollapsed && <span>Events</span>}
             </li>
+            <li className={activeSection === "meetings" ? "active" : ""} onClick={() => setActiveSection("meetings")}>
+              <span className="student-nav-icon">👥</span>
+              {!sidebarCollapsed && <span>Meetings</span>}
+            </li>
             <li className={activeSection === "profile" ? "active" : ""} onClick={() => setActiveSection("profile")}>
               <span className="student-nav-icon">👤</span>
               {!sidebarCollapsed && <span>Profile</span>}
@@ -719,6 +769,7 @@ const fetchJoinedClubs = async () => {
           {activeSection === "dashboard" && renderDashboard()}
           {activeSection === "clubs" && renderClubs()}
           {activeSection === "events" && renderEvents()}
+{activeSection === "meetings" && renderMeetings({ meetings, loading: meetingsLoading, userRole: 'student', onScanQR: handleScanQR })}
           {activeSection === "profile" && renderProfile()}
         </div>
       </main>

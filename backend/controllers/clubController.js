@@ -79,6 +79,11 @@ exports.createClub = async (req, res) => {
       const convenerUser = await findAndUpdateUserRole(convener.email, "club_head", name);
       if (convenerUser) {
         roleAssignments.push({ email: convener.email, role: "club_head", status: "assigned" });
+        club.members = club.members || [];
+        if (!club.members.includes(convenerUser._id)) {
+          club.members.push(convenerUser._id);
+        }
+        console.log(`Added convener ${convenerUser.email} (${convenerUser._id}) to club members`);
       } else {
         roleAssignments.push({ email: convener.email, role: "club_head", status: "pending_registration" });
       }
@@ -89,10 +94,17 @@ exports.createClub = async (req, res) => {
       const coConvenerUser = await findAndUpdateUserRole(coConvener.email, "coordinator", name);
       if (coConvenerUser) {
         roleAssignments.push({ email: coConvener.email, role: "coordinator", status: "assigned" });
+        club.members = club.members || [];
+        if (!club.members.includes(coConvenerUser._id)) {
+          club.members.push(coConvenerUser._id);
+        }
+        console.log(`Added co-convener ${coConvenerUser.email} (${coConvenerUser._id}) to club members`);
       } else {
         roleAssignments.push({ email: coConvener.email, role: "coordinator", status: "pending_registration" });
       }
     }
+    
+    await club.save();
 
     res.status(201).json({
       message: "Club created successfully, pending admin approval",
@@ -134,15 +146,17 @@ exports.getTeacherClubs = async (req, res) => {
     let clubs = await Club.find({ createdBy: req.user.id })
       .populate("createdBy", "name email")
       .populate("facultyCoordinator", "name email")
+      .populate("members", "name email role")
       .sort({ createdAt: -1 });
     
     // Also check if user is a convener in any club (for students assigned as club heads)
     if (userEmail) {
-      const convenerClubs = await Club.find({
-        "convener.email": userEmail,
-        status: "approved"
-      }).populate("createdBy", "name email")
-        .populate("facultyCoordinator", "name email");
+    const convenerClubs = await Club.find({
+      "convener.email": userEmail,
+      status: "approved"
+    }).populate("createdBy", "name email")
+      .populate("facultyCoordinator", "name email")
+      .populate("members", "name email role");
       
       // Merge clubs, avoiding duplicates
       const existingIds = clubs.map(c => c._id.toString());
