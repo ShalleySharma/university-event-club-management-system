@@ -33,7 +33,9 @@ const TeacherDashboard = ({ user }) => {
   // Events state
   const [myEvents, setMyEvents] = useState([]);
   const [eventsLoading, setEventsLoading] = useState(true);
-  const [showCreateEventModal, setShowCreateEventModal] = useState(false);
+    const [showCreateEventModal, setShowCreateEventModal] = useState(false);
+    const [showCreateMeetingModal, setShowCreateMeetingModal] = useState(false);
+    const [meetings, setMeetings] = useState([]);
   const [showEditEventModal, setShowEditEventModal] = useState(false);
   const [showEventDetailsModal, setShowEventDetailsModal] = useState(false);
   const [showParticipantsModal, setShowParticipantsModal] = useState(false);
@@ -44,6 +46,16 @@ const TeacherDashboard = ({ user }) => {
   const [editingEvent, setEditingEvent] = useState(null);
   const [eventStats, setEventStats] = useState({ totalEvents: 0, upcomingEvents: 0, pastEvents: 0, totalRegistrations: 0, pendingPayments: 0 });
   const [pendingPayments, setPendingPayments] = useState([]);
+  // Meeting form state
+  const [meetingFormData, setMeetingFormData] = useState({
+    title: "",
+    club: "",
+    description: "",
+    date: "",
+    startTime: "",
+    endTime: "",
+    location: ""
+  });
   
   // Form state
   const [clubFormData, setClubFormData] = useState({
@@ -100,6 +112,8 @@ const TeacherDashboard = ({ user }) => {
     if (activeSection === "events") {
       fetchMyEvents();
       fetchEventStats();
+    } else if (activeSection === "meetings") {
+      fetchMeetings();
     }
   }, [activeSection]);
 
@@ -559,6 +573,7 @@ const TeacherDashboard = ({ user }) => {
                 <p className="teacher-club-description">{club.description}</p>
                 <div className="teacher-club-stats">
                   <span>👥 {club.members?.length || 0} Members</span>
+                  <span>👨‍🎓 {(club.members?.filter(m => m.role === 'student').length || 0)} Students</span>
                   <span>📅 {club.eventsCount || 0} Events</span>
                 </div>
                 <div className="teacher-club-status">
@@ -678,6 +693,216 @@ const TeacherDashboard = ({ user }) => {
     </section>
   );
 
+  const handleMeetingInputChange = (e) => {
+    setMeetingFormData({ ...meetingFormData, [e.target.name]: e.target.value });
+  };
+
+  const handleCreateMeeting = async (e) => {
+    e.preventDefault();
+    setError("");
+    setSuccess("");
+
+    try {
+      const token = localStorage.getItem("token");
+      const response = await fetch("http://localhost:5000/api/meetings", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify(meetingFormData)
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        setSuccess("Meeting created successfully with QR code!");
+        setShowCreateMeetingModal(false);
+        setMeetingFormData({
+          title: "",
+          club: "",
+          description: "",
+          date: "",
+          startTime: "",
+          endTime: "",
+          location: ""
+        });
+        fetchMeetings();
+        setTimeout(() => setSuccess(""), 5000);
+      } else {
+        setError(data.message || "Failed to create meeting");
+      }
+    } catch (err) {
+      setError("Network error. Please try again.");
+    }
+  };
+
+  const fetchMeetings = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      const response = await fetch("http://localhost:5000/api/meetings/my-meetings", {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setMeetings(data);
+      }
+    } catch (err) {
+      console.error("Error fetching meetings:", err);
+    }
+  };
+
+  const renderMeetingsSection = () => (
+    <section className="teacher-meetings-section">
+      <div className="teacher-section-header">
+        <h3>👥 Meetings</h3>
+        <button className="teacher-btn-create" onClick={() => setShowCreateMeetingModal(true)}>
+          + Create Meeting
+        </button>
+      </div>
+      {success && <div className="teacher-success-message">{success}</div>}
+      {error && <div className="teacher-error-message">{error}</div>}
+      
+      {meetings.length > 0 ? (
+        <div className="teacher-events-table-container">
+          <table className="teacher-events-table">
+            <thead>
+              <tr>
+                <th>Title</th>
+                <th>Club</th>
+                <th>Date</th>
+                <th>Time</th>
+                <th>Location</th>
+                <th>Attendance</th>
+                <th>Status</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {meetings.map(meeting => (
+                <tr key={meeting._id}>
+                  <td><strong>{meeting.title}</strong></td>
+                  <td>{meeting.club?.name || 'N/A'}</td>
+                  <td>{new Date(meeting.date).toLocaleDateString()}</td>
+                  <td>{meeting.startTime} - {meeting.endTime}</td>
+                  <td>{meeting.location}</td>
+                  <td>{meeting.attendances?.length || 0}</td>
+                  <td><span className={`status-badge status-${meeting.status || 'scheduled'}`}>{meeting.status || 'Scheduled'}</span></td>
+                  <td style={{ whiteSpace: 'nowrap' }}>
+                    {meeting.qrImage ? (
+                      <>
+                        <img src={meeting.qrImage} alt="QR" style={{width: '32px', height: '32px', marginRight: '5px', cursor: 'pointer', verticalAlign: 'middle'}} 
+                             title="Click to enlarge"
+                             onClick={() => {
+                               const modal = document.createElement('div');
+                               modal.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.8);display:flex;align-items:center;justify-content:center;z-index:9999';
+                               modal.innerHTML = `<div style="background:white;padding:20px;border-radius:10px;text-align:center;max-width:90%;max-height:90%;overflow:auto;">
+                                   <h3>${meeting.title} QR Code</h3>
+                                   <img src="${meeting.qrImage}" style="width:300px;height:300px;border:1px solid #ddd;" />
+                                   <br/><button onclick="this.parentElement.parentElement.remove()" style="margin-top:10px;padding:8px 16px;background:#2563eb;color:white;border:none;border-radius:4px;cursor:pointer;">Close</button>
+                                 </div>`;
+                               document.body.appendChild(modal);
+                             }} />
+                        <button className="teacher-btn-view-small" style={{padding: '4px 8px', fontSize: '12px', verticalAlign: 'middle'}}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  const link = document.createElement('a');
+                                  link.href = meeting.qrImage;
+                                  link.download = `QR-${meeting.title.replace(/[^a-z0-9]/gi, '_')}.png`;
+                                  document.body.appendChild(link);
+                                  link.click();
+                                  document.body.removeChild(link);
+                                }}>Download</button>
+                      </>
+                    ) : (
+                      <span style={{color: '#999', fontSize: '12px'}}>No QR</span>
+                    )}
+                    <button className="teacher-btn-delete" style={{padding: '4px 8px', fontSize: '12px', marginLeft: '5px', verticalAlign: 'middle'}}
+                            onClick={() => {
+                              if(window.confirm('Delete this meeting?')) {
+                                fetch(`http://localhost:5000/api/meetings/${meeting._id}`, {
+                                  method: 'DELETE',
+                                  headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+                                }).then(res => res.json()).then(data => {
+                                  if(data.message) window.alert('Meeting deleted');
+                                  fetchMeetings();
+                                }).catch(err => console.error('Delete error:', err));
+                              }
+                            }}>Delete</button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      ) : (
+        <div className="teacher-empty-state">
+          <div className="teacher-empty-state-icon">👥</div>
+          <p>No meetings scheduled yet.</p>
+          <button className="teacher-btn-create" onClick={() => setShowCreateMeetingModal(true)}>
+            Create First Meeting
+          </button>
+        </div>
+      )}
+    </section>
+  );
+
+  const renderCreateMeetingModal = () => {
+    if (!showCreateMeetingModal) return null;
+    return (
+      <div className="teacher-modal-overlay" onClick={() => setShowCreateMeetingModal(false)}>
+        <div className="teacher-modal teacher-modal-large" onClick={(e) => e.stopPropagation()}>
+          <div className="teacher-modal-header">
+            <h3>👥 Create New Meeting</h3>
+            <button className="teacher-modal-close" onClick={() => setShowCreateMeetingModal(false)}>×</button>
+          </div>
+          <form onSubmit={handleCreateMeeting}>
+            <div className="form-section-title">📋 Meeting Details</div>
+            <div className="teacher-form-group">
+              <label>Select Club *</label>
+              <select name="club" value={meetingFormData.club} onChange={handleMeetingInputChange} required>
+                <option value="">Select club</option>
+                {myClubs.map(club => (
+                  <option key={club._id} value={club._id}>{club.name}</option>
+                ))}
+              </select>
+            </div>
+            <div className="teacher-form-group">
+              <label>Meeting Title *</label>
+              <input type="text" name="title" value={meetingFormData.title} onChange={handleMeetingInputChange} placeholder="e.g., Weekly Club Meeting" required />
+            </div>
+            <div className="teacher-form-group">
+              <label>Description</label>
+              <textarea name="description" value={meetingFormData.description} onChange={handleMeetingInputChange} placeholder="Meeting agenda..." />
+            </div>
+            <div className="form-row">
+              <div className="teacher-form-group">
+                <label>Date *</label>
+                <input type="date" name="date" value={meetingFormData.date} onChange={handleMeetingInputChange} required />
+              </div>
+              <div className="teacher-form-group">
+                <label>Start Time *</label>
+                <input type="time" name="startTime" value={meetingFormData.startTime} onChange={handleMeetingInputChange} required />
+              </div>
+            </div>
+            <div className="form-row">
+              <div className="teacher-form-group">
+                <label>End Time</label>
+                <input type="time" name="endTime" value={meetingFormData.endTime} onChange={handleMeetingInputChange} />
+              </div>
+            </div>
+            <div className="teacher-form-group">
+              <label>Location *</label>
+              <input type="text" name="location" value={meetingFormData.location} onChange={handleMeetingInputChange} placeholder="e.g., Seminar Hall A-101" required />
+            </div>
+            {error && <div className="teacher-form-error">{error}</div>}
+            <button type="submit" className="teacher-btn-submit">Create Meeting & Generate QR</button>
+          </form>
+        </div>
+      </div>
+    );
+  };
+
   const renderProfileSection = () => (
     <section className="teacher-profile-section">
       <div className="teacher-profile-header">
@@ -747,12 +972,13 @@ const TeacherDashboard = ({ user }) => {
                 <h4>👥 Club Members</h4>
                 {clubDetails.members && clubDetails.members.length > 0 ? (
                   <table className="teacher-members-table">
-                    <thead><tr><th>Name</th><th>Email</th><th>Action</th></tr></thead>
+                    <thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Action</th></tr></thead>
                     <tbody>
                       {clubDetails.members.map(member => (
                         <tr key={member._id}>
                           <td>{member.name || "Unknown"}</td>
                           <td>{member.email}</td>
+                          <td><span className={`status-badge status-${member.role || 'unknown'}`}>{member.role || 'Unknown'}</span></td>
                           <td><button className="teacher-btn-remove-member" onClick={() => handleRemoveMember(member._id)}>Remove</button></td>
                         </tr>
                       ))}
@@ -895,9 +1121,13 @@ const TeacherDashboard = ({ user }) => {
               <span className="teacher-nav-icon">🏛</span>
               {!sidebarCollapsed && <span>My Clubs</span>}
             </li>
-            <li className={activeSection === "events" ? "active" : ""} onClick={() => setActiveSection("events")}>
+<li className={activeSection === "events" ? "active" : ""} onClick={() => setActiveSection("events")}>
               <span className="teacher-nav-icon">📅</span>
               {!sidebarCollapsed && <span>Events</span>}
+            </li>
+            <li className={activeSection === "meetings" ? "active" : ""} onClick={() => setActiveSection("meetings")}>
+              <span className="teacher-nav-icon">👥</span>
+              {!sidebarCollapsed && <span>Meetings</span>}
             </li>
             <li className={activeSection === "profile" ? "active" : ""} onClick={() => setActiveSection("profile")}>
               <span className="teacher-nav-icon">👤</span>
@@ -966,8 +1196,8 @@ const TeacherDashboard = ({ user }) => {
                 <div className="teacher-stat-card">
                   <div className="teacher-stat-icon" style={{ background: 'linear-gradient(135deg, #4facfe, #00f2fe)' }}>👥</div>
                   <div className="teacher-stat-info">
-                    <h3>{myClubs.reduce((acc, club) => acc + (club.members?.length || 0), 0)}</h3>
-                    <p>Total Members</p>
+                    <h3>{myClubs.reduce((acc, club) => acc + (club.members?.filter(m => m.role === 'student').length || 0), 0)}</h3>
+                    <p>Total Students</p>
                   </div>
                 </div>
                 <div className="teacher-stat-card">
@@ -1020,8 +1250,9 @@ const TeacherDashboard = ({ user }) => {
             </section>
           )}
           {activeSection === "myClubs" && renderMyClubsSection()}
-          {activeSection === "events" && renderEventsSection()}
-          {activeSection === "profile" && renderProfileSection()}
+        {activeSection === "events" && renderEventsSection()}
+        {activeSection === "meetings" && renderMeetingsSection()}
+        {activeSection === "profile" && renderProfileSection()}
         </div>
       </main>
 
@@ -1364,9 +1595,10 @@ const TeacherDashboard = ({ user }) => {
       )}
 
       {/* Render other modals */}
-      {renderClubDetailsModal()}
+{renderClubDetailsModal()}
       {renderEventDetailsModal()}
       {renderParticipantsModal()}
+      {renderCreateMeetingModal()}
     </div>
   );
 };

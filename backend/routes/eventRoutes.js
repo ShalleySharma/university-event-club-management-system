@@ -23,6 +23,11 @@ router.get("/my-events", async (req, res) => {
   await eventController.getMyEvents(req, res);
 });
 
+// Get events for club heads
+router.get("/club-head-events", async (req, res) => {
+  await eventController.getClubHeadEvents(req, res);
+});
+
 // Get event statistics
 router.get("/stats", async (req, res) => {
   await eventController.getEventStats(req, res);
@@ -72,6 +77,11 @@ router.get("/student/registrations", async (req, res) => {
   await eventController.getMyRegistrations(req, res);
 });
 
+// Get club events for students (from joined clubs)
+router.post("/club-events", async (req, res) => {
+  await eventController.getClubEvents(req, res);
+});
+
 // Get student dashboard stats
 router.get("/student/stats", async (req, res) => {
   await eventController.getStudentStats(req, res);
@@ -86,10 +96,8 @@ router.get("/admin/pending", authorizeRoles("admin"), async (req, res) => {
   await eventController.getPendingEvents(req, res);
 });
 
-// Approve or reject an event
-router.patch("/admin/:eventId/approve", authorizeRoles("admin"), async (req, res) => {
-  await eventController.approveEvent(req, res);
-});
+// Approve/reject event (admin)
+router.patch("/admin/:eventId/approve", authorizeRoles("admin"), eventController.approveEvent);
 
 // Get all events (for admin)
 router.get("/admin/all", authorizeRoles("admin"), async (req, res) => {
