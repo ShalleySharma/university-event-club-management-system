@@ -35,7 +35,23 @@ const formatEvents = (events) => events.map(e => ({
 
 // All get functions as before...
 const getClubEvents = async (req, res) => res.json([]);
-const getMyEvents = async (req, res) => res.json([]);
+const getMyEvents = async (req, res) => {
+  try {
+    const user = getUserFromToken(req);
+    if (!user) return res.status(401).json({ message: "Unauthorized" });
+
+    const userId = user.id;
+    const events = await Event.find({ createdBy: userId })
+      .populate("clubId", "name")
+      .lean();
+    
+    console.log(`Teacher ${user.email} events: ${events.length}`);
+    res.json(formatEvents(events));
+  } catch (error) {
+    console.error('getMyEvents error:', error);
+    res.json([]);
+  }
+};
 const getClubHeadEvents = async (req, res) => {
   try {
     const user = getUserFromToken(req);

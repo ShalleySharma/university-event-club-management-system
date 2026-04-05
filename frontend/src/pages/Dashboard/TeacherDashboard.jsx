@@ -657,6 +657,7 @@ const TeacherDashboard = ({ user }) => {
                 <th>Date</th>
                 <th>Time</th>
                 <th>Location</th>
+                <th>Approval</th>
                 <th>Participants</th>
                 <th>Actions</th>
               </tr>
@@ -669,6 +670,7 @@ const TeacherDashboard = ({ user }) => {
                   <td>{event.date}</td>
                   <td>{event.time}</td>
                   <td>{event.location}</td>
+                  <td><span className={`status-badge status-${event.approvalStatus || 'pending'}`}>{event.approvalStatus || 'Pending'}</span></td>
                   <td>{event.registrationCount || 0}</td>
                   <td className="actions-cell">
                     <button className="teacher-btn-view" onClick={() => handleViewEvent(event)}>View</button>

@@ -1,9 +1,9 @@
-# Admin Dashboard Users Task
+# Task Plan: Show all teacher-created events (approved/rejected/pending) in TeacherDashboard events section
 
-**Status:** In Progress
+## Steps to Complete:
+- [x] 1. Implement `getMyEvents` in backend/controllers/eventController.js to fetch ALL events created by teacher (no approvalStatus filter)
+- [x] 2. Update frontend/src/pages/Dashboard/TeacherDashboard.jsx: Add `approvalStatus` column to events table, show status badge
+- [ ] 3. Test: Verify TeacherDashboard shows events with all statuses, table renders `approvalStatus`
+- [ ] 4. Commit and push changes
 
-1. [ ] Update AdminDashboard.jsx - Fetch /api/users → filter teachers/students client-side
-2. [ ] Test Admin → Teachers tab → All teachers (including club creators)
-3. [ ] Test Admin → Students tab → All students
-4. [ ] Complete task
-
+Current progress: 2/4

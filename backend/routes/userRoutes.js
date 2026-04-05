@@ -74,6 +74,9 @@ router.patch("/role-requests/:requestId", isAuthenticated, authorizeRoles("admin
   }
 });
 
+// Admin routes - Assign club head to student (admin only)
+router.patch("/users/:id/assign-clubhead", isAuthenticated, authorizeRoles("admin"), userController.assignClubHead);
+
 // Admin routes - Delete user (admin only)
 router.delete("/:id", isAuthenticated, authorizeRoles("admin"), userController.deleteUser);
 

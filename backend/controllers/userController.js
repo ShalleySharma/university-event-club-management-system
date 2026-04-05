@@ -166,6 +166,31 @@ exports.deleteUser = async (req, res) => {
   }
 };
 
+exports.assignClubHead = async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    const user = await User.findById(id);
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+    
+    if (user.role !== "student") {
+      return res.status(400).json({ message: "Only students can be assigned as club head" });
+    }
+    
+    user.role = "club_head";
+    await user.save();
+    
+    res.json({ 
+      message: "User promoted to Club Head successfully", 
+      user: { id: user._id, name: user.name, role: user.role }
+    });
+  } catch (err) {
+    res.status(500).json({ message: "Server error: " + err.message });
+  }
+};
+
 exports.getAdminDashboard = async (req, res) => {
   try {
     const Club = require("../models/Club");
