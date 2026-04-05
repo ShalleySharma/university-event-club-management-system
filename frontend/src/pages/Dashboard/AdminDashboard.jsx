@@ -44,9 +44,9 @@ const AdminDashboard = ({ user }) => {
     if (activeSection === "clubs") {
       fetchAllClubs();
     } else if (activeSection === "students") {
-      fetchAllUsers("student");
+      fetchAllUsers('student');
     } else if (activeSection === "teachers") {
-      fetchAllUsers("teacher");
+      fetchAllUsers('teacher');
     } else if (activeSection === "events") {
       fetchAllEvents();
     }
@@ -69,11 +69,11 @@ const AdminDashboard = ({ user }) => {
       });
       const clubsData = clubsRes.ok ? await clubsRes.json() : [];
 
-      // Fetch users - using correct endpoint /api/users
-      const usersRes = await fetch("http://localhost:5000/api/users", {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      const usersData = usersRes.ok ? await usersRes.json() : [];
+      // Skip /api/users call - dashboard stats don't need it
+      // const usersRes = await fetch("http://localhost:5000/api/users", {
+      //   headers: { Authorization: `Bearer ${token}` }
+      // });
+      // const usersData = usersRes.ok ? await usersRes.json() : []; 
 
       // Fetch role requests - using correct endpoint /api/role-requests
       const requestsRes = await fetch("http://localhost:5000/api/role-requests", {
@@ -100,7 +100,6 @@ const AdminDashboard = ({ user }) => {
       
       setPendingClubs(clubsData.filter(c => c.status === "pending"));
       setAllClubs(clubsData);
-      setAllUsers(usersData || []);
       setRoleRequests(requestsData.filter(r => r.status === "pending"));
     } catch (err) {
       console.error("Error fetching dashboard data:", err);
@@ -143,10 +142,14 @@ const AdminDashboard = ({ user }) => {
       });
       if (response.ok) {
         const data = await response.json();
-        setAllUsers(data.filter(u => u.role === role));
+        const filteredData = data.filter((u) => u.role === role);
+        setAllUsers(filteredData);
+        console.log(`Loaded ${filteredData.length} ${role}s (filtered from ${data.length}) ✅`);
+      } else {
+        console.error(`${role.charAt(0).toUpperCase() + role.slice(1)} fetch failed:`, response.status);
       }
     } catch (err) {
-      console.error("Error fetching users:", err);
+      console.error(`Error fetching ${role}s:`, err);
     }
     setLoading(false);
   };

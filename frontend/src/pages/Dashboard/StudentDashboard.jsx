@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useContext } from "react";
 import { useNavigate } from "react-router-dom";
 import { AuthContext } from "../../context/AuthContext";
-import "./StudentDashboard.css";
+import "./ProfessionalDarkDashboard.css";
 import renderMeetings from './renderMeetings';
 import fetchMeetings from './fetchMeetings';
 import RenderClubEvents from './renderClubEvents';
@@ -171,8 +171,8 @@ const fetchJoinedClubs = async () => {
     }
   };
 
-  // Check if user is a club head (has created clubs)
-  const isClubHead = myClubs && myClubs.length > 0;
+  // Check if user is a club head (database role + created clubs)
+  const isClubHead = user?.role === 'club_head' || (myClubs && myClubs.length > 0);
   
   // Get badge info for display
   const getConvenerBadge = () => badges.find(b => b.type === 'convener');
@@ -592,7 +592,7 @@ const fetchJoinedClubs = async () => {
           <p>{user?.email || 'student@college.edu'}</p>
           
           {/* Show role badges based on teacher assignments */}
-          {isClubHead && <span className="student-role-badge" style={{ backgroundColor: "#9C27B0" }}>👑 Club Head</span>}
+          {user?.role === 'club_head' && <span className="student-role-badge" style={{ backgroundColor: "#9C27B0" }}>👑 Club Head</span>}
           {getConvenerBadge() && <span className="student-role-badge" style={{ backgroundColor: "#FF5722" }}>🎯 Convener</span>}
           {getCoConvenerBadge() && <span className="student-role-badge" style={{ backgroundColor: "#00BCD4" }}>⭐ Co-Convener</span>}
           <span className="student-role-badge" style={{ backgroundColor: badge.color }}>{badge.badge}</span>
