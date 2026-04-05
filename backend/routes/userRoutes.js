@@ -79,6 +79,23 @@ router.delete("/:id", isAuthenticated, authorizeRoles("admin"), userController.d
 
 // Admin routes - Teacher Management
 router.get("/teachers", isAuthenticated, authorizeRoles("admin"), userController.getAllTeachers);
+router.get("/teachers/all", isAuthenticated, authorizeRoles("admin"), async (req, res) => {
+  try {
+    const teachers = await User.find({ role: "teacher" }).select("-password");
+    res.json(teachers);
+  } catch (err) {
+    res.status(500).json({ message: "Server error: " + err.message });
+  }
+});
+
+router.get("/students/all", isAuthenticated, authorizeRoles("admin"), async (req, res) => {
+  try {
+    const students = await User.find({ role: { $in: ["student", "club_head", "convener"] } }).select("-password");
+    res.json(students);
+  } catch (err) {
+    res.status(500).json({ message: "Server error: " + err.message });
+  }
+});
 
 router.post("/teachers", isAuthenticated, authorizeRoles("admin"), userController.createTeacher);
 

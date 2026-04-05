@@ -23,7 +23,7 @@ router.get(
 router.get(
   "/my-clubs",
   isAuthenticated,
-  clubController.getTeacherClubs
+  clubController.getMyClubs
 );
 
 // Create club (teachers, club heads and admins)

@@ -1,0 +1,306 @@
+/* BACKUP: Original ClubHeadDashboard.css before theme change - Blue Teacher Theme with student- classes */
+
+/* Copy of TeacherDashboard.css with teacher- → student- prefix for compatibility */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+
+:root {
+  --student-primary-dark: #0A192F;
+  --student-primary-blue: #2563EB;
+  --student-primary-light: #3B82F6;
+  --student-accent-gold: #F59E0B;
+  --student-white: #ffffff;
+  --student-light-bg: #F8FAFC;
+  --student-light-gray: #E2E8F0;
+  --student-text-dark: #1E293B;
+  --student-text-gray: #64748B;
+  --student-shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.1);
+  --student-shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1);
+  --student-shadow-lg: 0 10px 30px rgba(0, 0, 0, 0.15);
+  --student-transition: all 0.3s ease;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+.student-dashboard {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  display: flex;
+  min-height: 100vh;
+  background: var(--student-light-bg);
+}
+
+.student-sidebar {
+  width: 260px;
+  background: linear-gradient(180deg, var(--student-primary-dark) 0%, #1a365d 100%);
+  color: white;
+  display: flex;
+  flex-direction: column;
+  transition: var(--student-transition);
+  position: fixed;
+  height: 100vh;
+  z-index: 100;
+}
+
+.student-sidebar.collapsed {
+  width: 80px;
+}
+
+.student-sidebar-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.student-logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.student-logo-icon {
+  font-size: 28px;
+}
+
+.student-logo-text {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--student-white);
+}
+
+.student-sidebar-toggle {
+  background: rgba(255, 255, 255, 0.1);
+  border: none;
+  color: white;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  cursor: pointer;
+  transition: var(--student-transition);
+}
+
+.student-sidebar-toggle:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.student-sidebar-nav {
+  flex: 1;
+  padding: 20px 0;
+}
+
+.student-sidebar-nav ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.student-sidebar-nav li {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 20px;
+  cursor: pointer;
+  transition: var(--student-transition);
+  font-size: 15px;
+  color: rgba(255, 255, 255, 0.8);
+  border-left: 3px solid transparent;
+}
+
+.student-sidebar-nav li:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--student-white);
+}
+
+.student-sidebar-nav li.active {
+  background: rgba(255, 255, 255, 0.1);
+  border-left-color: var(--student-accent-gold);
+  color: var(--student-white);
+}
+
+.student-sidebar-nav li.logout {
+  margin-top: auto;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  border-left: none;
+}
+
+.student-nav-icon {
+  font-size: 18px;
+  width: 24px;
+  text-align: center;
+}
+
+.student-main-content {
+  flex: 1;
+  margin-left: 260px;
+  transition: margin-left 0.3s ease;
+  background: var(--student-light-bg);
+}
+
+.student-sidebar.collapsed + .student-main-content {
+  margin-left: 80px;
+}
+
+.student-top-navbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 15px 30px;
+  background: var(--student-white);
+  box-shadow: var(--student-shadow-sm);
+  position: sticky;
+  top: 0;
+  z-index: 50;
+}
+
+.student-navbar-left h1 {
+  font-size: 24px;
+  color: var(--student-primary-dark);
+  margin: 0;
+  font-weight: 700;
+}
+
+.student-navbar-right {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.student-date-time {
+  font-size: 14px;
+  color: var(--student-text-gray);
+}
+
+.student-navbar-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  cursor: pointer;
+  border: 2px solid var(--student-primary-blue);
+  transition: var(--student-transition);
+}
+
+.student-navbar-avatar:hover {
+  border-color: var(--student-accent-gold);
+}
+
+.student-welcome-section {
+  margin: 30px 30px 20px;
+  padding: 40px;
+  background: linear-gradient(135deg, var(--student-primary-dark) 0%, #1a365d 50%, #0f172a 100%);
+  border-radius: 16px;
+  position: relative;
+  overflow: hidden;
+  box-shadow: var(--student-shadow-lg);
+}
+
+.student-welcome-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  position: relative;
+  z-index: 1;
+}
+
+.student-welcome-text h2 {
+  color: var(--student-white);
+  font-size: 28px;
+  margin: 0 0 8px;
+  font-weight: 700;
+}
+
+.student-welcome-text p {
+  color: rgba(255, 255, 255, 0.85);
+  font-size: 16px;
+  margin: 0;
+}
+
+.student-role-badge {
+  display: inline-block;
+  margin-top: 12px;
+  padding: 6px 14px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--student-white);
+}
+
+.student-welcome-illustration {
+  font-size: 80px;
+  opacity: 0.9;
+}
+
+.student-quick-overview {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 20px;
+  padding: 0 30px;
+  margin-bottom: 30px;
+}
+
+.student-overview-card {
+  background: var(--student-white);
+  border-radius: 16px;
+  padding: 24px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  box-shadow: var(--student-shadow-sm);
+  transition: var(--student-transition);
+  border: 1px solid var(--student-light-gray);
+}
+
+.student-overview-card:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--student-shadow-md);
+  border-color: var(--student-primary-blue);
+}
+
+.student-overview-icon {
+  font-size: 36px;
+  width: 60px;
+  height: 60px;
+  background: linear-gradient(135deg, var(--student-primary-blue), var(--student-primary-light));
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.student-overview-info h3 {
+  font-size: 32px;
+  color: var(--student-primary-dark);
+  margin: 0;
+  font-weight: 700;
+}
+
+.student-overview-info p {
+  font-size: 14px;
+  color: var(--student-text-gray);
+  margin: 4px 0 0;
+}
+
+/* Responsive adjustments */
+@media (max-width: 1200px) {
+  .student-quick-overview {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  
+  .student-clubs-grid-full {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 768px) {
+  .student-sidebar {
+    width: 80px;
+  }
+  
+  .student-main-content {
+    margin-left: 80px;
+  }
+}
