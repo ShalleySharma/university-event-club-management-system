@@ -2,7 +2,7 @@ const fetchClubEvents = async (setClubEvents, setClubEventsLoading) => {
   try {
     setClubEventsLoading(true);
     const token = localStorage.getItem("token");
-    const response = await fetch('http://localhost:5000/api/events/club-events', {
+    const response = await fetch(`${process.env.REACT_APP_API_URL || 'https://university-event-club-management-system.onrender.com'}/api/events/club-events`, {
       method: 'POST',
       headers: { 
         Authorization: `Bearer ${token}`,
@@ -22,4 +22,3 @@ const fetchClubEvents = async (setClubEvents, setClubEventsLoading) => {
 };
 
 export default fetchClubEvents;
-

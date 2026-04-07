@@ -14,7 +14,7 @@ export const AuthProvider = ({ children }) => {
       if (token && role) {
         try {
           // Validate token by making a request to /api/me
-          const response = await fetch("http://localhost:5000/api/me", {
+          const response = await fetch(`${process.env.REACT_APP_API_URL || 'https://university-event-club-management-system.onrender.com'}/api/me`, {
             headers: {
               'Authorization': `Bearer ${token}`
             }

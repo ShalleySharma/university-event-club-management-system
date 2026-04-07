@@ -22,7 +22,7 @@ export const handleMsalCallback = (msalInstance) => {
       const account = tokenResponse.account;
       
       // Send the token to backend for verification and session creation
-      const response = await fetch("http://localhost:5000/api/auth/microsoft", {
+      const response = await fetch("https://university-event-club-management-system.onrender.com/api/auth/microsoft", {
         method: "POST",
         headers: {
           "Content-Type": "application/json"
