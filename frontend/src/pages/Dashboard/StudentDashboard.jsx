@@ -217,6 +217,10 @@ const StudentDashboard = ({ user }) => {
     }
   };
 
+  const handleViewEvent = (event) => {
+    navigate(`/event/${event._id}`);
+  };
+
   // Render functions (unchanged UI)
   const renderMyClubsSection = () => (
     <section className="teacher-clubs-section">
