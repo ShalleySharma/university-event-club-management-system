@@ -1,96 +1,113 @@
-const renderMeetings = ({ meetings = [], loading = false, userRole = 'student', onScanQR }) => {
-  const handleScanQR = (meeting) => {
-    if (typeof onScanQR === 'function') {
-      onScanQR(meeting);
-    } else {
-      // Fallback QR scanner - paste QR data
-      const qrData = prompt(`Scan QR for meeting: ${meeting.title}\\nPaste QR data here (format: meeting:ID:timestamp):`);
-      if (qrData) {
-        console.log('QR scanned:', qrData, 'for meeting:', meeting._id);
-        alert('QR scanned! Check backend - attendance marked as pending.');
-      }
+import React from 'react';
+
+const RenderMeetings = ({ meetings = [], loading = false, userRole = 'student' }) => {
+  const openAttendanceModal = (meeting) => {
+    const confirmed = window.confirm(`📱 Mark attendance for "${meeting.title}"?\n\nThis will record your attendance for this meeting.`);
+    if (confirmed) {
+      const token = localStorage.getItem('token');
+      fetch(`http://localhost:5000/api/meetings/${meeting._id}/attend`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({})  // Backend /attend ignores qrData
+      })
+        .then(res => {
+          if (!res.ok) {
+            return res.text().then(text => {
+              throw new Error(`HTTP ${res.status}: ${text.substring(0, 100)}`);
+            });
+          }
+          return res.json();
+        })
+        .then(data => {
+          alert(data.message || '✅ Attendance marked successfully!');
+          // Optional: refresh meetings list via props callback
+        })
+        .catch(err => {
+          console.error('Attendance error:', err);
+          alert(`❌ Error: ${err.message}`);
+        });
     }
   };
 
   return (
-    <section className="student-events-full-section">
-      <div className="student-section-header">
+    <section className="teacher-meetings-section">
+      <div className="teacher-section-header">
         <h3>👥 Meetings</h3>
-        <span className="student-event-count">{meetings.length} meetings</span>
+        <span className="teacher-club-count">{meetings.length} meetings</span>
       </div>
 
       {loading ? (
-        <div className="student-loading">Loading meetings...</div>
+        <div className="teacher-loading">Loading meetings...</div>
       ) : meetings.length === 0 ? (
-        <div className="student-empty-state">
-          <span>📋</span>
-          <p>No meetings scheduled for your clubs yet</p>
+        <div className="teacher-empty-state">
+          <div className="teacher-empty-state-icon">👥</div>
+          <p>No meetings available</p>
         </div>
       ) : (
-        <div className="student-events-grid-full">
-          {meetings.map(meeting => {
-            // Check student's attendance
-            const myAttendance = meeting.attendances?.find(att => 
-              att.student && att.student._id === (localStorage.getItem('userId') || 'currentStudentId')
-            ) || meeting.attendances?.find(att => att.student?._id === 'currentStudentId');
-            
-            return (
-              <div key={meeting._id} className="student-event-card-full">
-                <div className="student-event-header">
-                  <span className="student-event-icon">👥</span>
-                  <h4>{meeting.title}</h4>
-                </div>
-                <div className="student-event-details">
-                  <p><span>🏛</span> {meeting.club?.name}</p>
-                  <p><span>📅</span> {new Date(meeting.date).toLocaleDateString()}</p>
-                  <p><span>🕒</span> {meeting.startTime} - {meeting.endTime}</p>
-                  <p><span>📍</span> {meeting.location}</p>
-                  <p><span>📊</span> {meeting.attendances?.length || 0} attendees</p>
-                  
-                  {userRole === 'student' && (
-                    <div className="student-meeting-status" style={{marginTop: '10px'}}>
-                      {myAttendance ? (
-                        <span className={`status-badge status-${myAttendance.status}`} style={{fontSize: '14px'}}>
-                          {myAttendance.status === 'approved' ? '✅ Attended' : 
-                           myAttendance.status === 'scanned' ? '⏳ Pending Approval' : '❌ Rejected'}
-                        </span>
+        <div className="teacher-events-table-container">
+          <table className="teacher-events-table">
+            <thead>
+              <tr>
+                <th>Title</th>
+                <th>Club</th>
+                <th>Date</th>
+                <th>Time</th>
+                <th>Location</th>
+                <th>Attendees</th>
+                <th>Status</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              {meetings.map(meeting => {
+                const myAttendance = meeting.attendances?.find(att => 
+                  att.student && att.student._id === (localStorage.getItem('userId') || 'currentStudentId')
+                ) || meeting.attendances?.find(att => att.student?._id === 'currentStudentId');
+                
+                return (
+                  <tr key={meeting._id}>
+                    <td><strong>{meeting.title}</strong></td>
+                    <td>{meeting.club?.name || 'N/A'}</td>
+                    <td>{new Date(meeting.date).toLocaleDateString()}</td>
+                    <td>{meeting.startTime} - {meeting.endTime}</td>
+                    <td>{meeting.location}</td>
+                    <td>{meeting.attendances?.length || 0}</td>
+                    <td><span className={`status-badge status-${meeting.status || 'scheduled'}`}>{meeting.status || 'Scheduled'}</span></td>
+                    <td>
+                      {userRole === 'student' ? (
+                        myAttendance ? (
+                          <span className={`status-badge status-${myAttendance.status}`}>
+                            {myAttendance.status === 'approved' ? '✅ Attended' : 
+                             myAttendance.status === 'scanned' ? '⏳ Pending' : '❌ Rejected'}
+                          </span>
+                        ) : (
+                          <button 
+                            className="teacher-btn-join teacher-btn-small" 
+                            onClick={() => openAttendanceModal(meeting)}
+                          >
+                            📱 Mark Attendance
+                          </button>
+                        )
                       ) : (
-                        <button 
-                          className="scan-qr-btn" 
-                          onClick={() => handleScanQR(meeting)}
-                          style={{
-                            background: '#4CAF50',
-                            color: 'white',
-                            border: 'none',
-                            padding: '8px 16px',
-                            borderRadius: '5px',
-                            cursor: 'pointer',
-                            fontSize: '14px',
-                            marginTop: '5px'
-                          }}
-                        >
-                          📱 Mark Attendance (Scan QR)
-                        </button>
+                        meeting.qrImage ? (
+                          <img src={meeting.qrImage} alt="QR" style={{width: '24px', height: '24px', verticalAlign: 'middle', cursor: 'pointer'}} 
+                               title="QR Code - Show on projector" />
+                        ) : 'No QR'
                       )}
-                    </div>
-                  )}
-                  
-                  {userRole === 'teacher' || userRole === 'club_head' && meeting.qrImage && (
-                    <div className="meeting-qr-section">
-                      <p style={{marginTop: '10px'}}><strong>QR Code:</strong></p>
-                      <img src={meeting.qrImage} alt="QR Code" style={{width: '120px', height: '120px', marginTop: '5px'}} />
-                      <small>Show this QR to students for attendance</small>
-                    </div>
-                  )}
-                </div>
-              </div>
-            );
-          })}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
         </div>
       )}
     </section>
   );
 };
 
-export default renderMeetings;
+export default RenderMeetings;
 

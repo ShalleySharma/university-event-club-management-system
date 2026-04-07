@@ -5,7 +5,7 @@ const registrationSchema = new mongoose.Schema({
   eventId: { type: mongoose.Schema.Types.ObjectId, ref: "Event", required: true },
   registeredAt: { type: Date, default: Date.now },
   
-  // Payment Details
+  // Payment Details (optional for free events)
   paymentStatus: { 
     type: String, 
     enum: ["pending", "approved", "rejected", "not_required"], 
@@ -22,7 +22,7 @@ const registrationSchema = new mongoose.Schema({
     enum: ["registered", "cancelled"], 
     default: "registered" 
   }
-});
+}, { timestamps: true });
 
 // Prevent duplicate registrations
 registrationSchema.index({ studentId: 1, eventId: 1 }, { unique: true });

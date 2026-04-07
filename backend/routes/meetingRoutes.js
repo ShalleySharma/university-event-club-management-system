@@ -3,6 +3,9 @@ const router = express.Router();
 const { isAuthenticated, authorizeRoles } = require('../middleware/authMiddleware');
 const meetingController = require('../controllers/meetingController');
 
+// GET /api/meetings - Student gets joined clubs meetings  
+router.get('/', isAuthenticated, meetingController.getMyMeetings);
+
 // GET /api/meetings/my-meetings - Teacher/Coordinator gets their meetings
 router.get('/my-meetings', isAuthenticated, meetingController.getMyMeetings);
 
@@ -23,6 +26,9 @@ router.patch('/attendance/:attendanceId/reject', isAuthenticated, authorizeRoles
 
 // GET /api/meetings/:meetingId/stats - Attendance stats
 router.get('/:meetingId/stats', isAuthenticated, meetingController.getMeetingAttendanceStats);
+
+// POST /api/meetings/:id/attend - Student marks attendance via button (new route for frontend)
+router.post('/:id/attend', isAuthenticated, authorizeRoles('student'), meetingController.markMeetingAttendance);
 
 module.exports = router;
 

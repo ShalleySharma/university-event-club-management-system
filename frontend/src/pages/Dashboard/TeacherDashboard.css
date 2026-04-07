@@ -665,7 +665,23 @@
 
 .teacher-club-logo {
   font-size: 48px;
+  width: 70px;
+  height: 70px;
+  background: var(--teacher-light-bg);
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   margin-bottom: 16px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.teacher-club-logo img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 12px;
 }
 
 .teacher-club-info h4 {
@@ -754,15 +770,22 @@
 }
 
 .teacher-club-card-full .teacher-club-logo {
-  font-size: 56px;
-  width: 90px;
-  height: 90px;
+  font-size: 48px;
+  width: 70px;
+  height: 70px;
   background: var(--teacher-light-bg);
-  border-radius: 16px;
+  border-radius: 12px;
   display: flex;
   align-items: center;
   justify-content: center;
   margin-bottom: 0;
+}
+
+.teacher-club-card-full .teacher-club-logo img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 12px;
 }
 
 .teacher-club-card-full .teacher-club-info {

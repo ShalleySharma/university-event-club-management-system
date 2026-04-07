@@ -137,14 +137,19 @@ const AdminDashboard = ({ user }) => {
     setLoading(true);
     try {
       const token = localStorage.getItem("token");
-      const response = await fetch("http://localhost:5000/api/users", {
+      let url = "";
+      if (role === "student") {
+        url = "http://localhost:5000/api/users/students/all";
+      } else if (role === "teacher") {
+        url = "http://localhost:5000/api/users/teachers/all";
+      }
+      const response = await fetch(url, {
         headers: { Authorization: `Bearer ${token}` }
       });
       if (response.ok) {
         const data = await response.json();
-        const filteredData = data.filter((u) => u.role === role);
-        setAllUsers(filteredData);
-        console.log(`Loaded ${filteredData.length} ${role}s (filtered from ${data.length}) ✅`);
+        setAllUsers(data);
+        console.log(`Loaded ${data.length} ${role}s ✅`);
       } else {
         console.error(`${role.charAt(0).toUpperCase() + role.slice(1)} fetch failed:`, response.status);
       }
@@ -249,10 +254,46 @@ const AdminDashboard = ({ user }) => {
       
       if (response.ok) {
         setSuccess("Club deleted successfully!");
+        // Optimistic UI update
+        setAllClubs(prev => prev.filter(club => club._id !== clubId));
+        setPendingClubs(prev => prev.filter(club => club._id !== clubId));
         fetchDashboardData();
         setTimeout(() => setSuccess(""), 3000);
       } else {
         setError("Failed to delete club");
+      }
+    } catch (err) {
+      setError("Network error. Please try again.");
+    }
+  };
+
+
+  const handleAssignClubHead = async (userId) => {
+    if (!window.confirm("Assign this student as Club Head?")) return;
+    setError("");
+    setSuccess("");
+    
+    try {
+      const token = localStorage.getItem("token");
+      const response = await fetch(`http://localhost:5000/api/users/${userId}/assign-clubhead`, {
+        method: "PATCH",
+        headers: { 
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}` 
+        }
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        setSuccess(data.message);
+        // Refresh users list
+        const currentRole = activeSection === "students" ? "student" : "teacher";
+        fetchAllUsers(currentRole);
+        fetchDashboardData();
+        setTimeout(() => setSuccess(""), 3000);
+      } else {
+        const data = await response.json();
+        setError(data.message || "Failed to assign role");
       }
     } catch (err) {
       setError("Network error. Please try again.");
@@ -510,6 +551,15 @@ const AdminDashboard = ({ user }) => {
                   <td>{u.email}</td>
                   <td><span className="admin-role-badge">{u.role}</span></td>
                   <td>
+                    {userRole === "student" && u.role === "student" && (
+                      <button 
+                        className="admin-btn-promote" 
+                        onClick={() => handleAssignClubHead(u._id)}
+                        title="Promote to Club Head"
+                      >
+                        👑 Club Head
+                      </button>
+                    )}
                     <button className="admin-btn-delete" onClick={() => handleDeleteUser(u._id)}>Delete</button>
                   </td>
                 </tr>

@@ -1,25 +1,25 @@
-const fetchClubEvents = async (setClubEvents, setLoading, clubIds) => {
-  setLoading(true);
+const fetchClubEvents = async (setClubEvents, setClubEventsLoading) => {
   try {
+    setClubEventsLoading(true);
     const token = localStorage.getItem("token");
-    const response = await fetch("http://localhost:5000/api/events/club-events", {
-      method: "POST",
+    const response = await fetch('http://localhost:5000/api/events/club-events', {
+      method: 'POST',
       headers: { 
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}` 
-      },
-      body: JSON.stringify({ clubIds })
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      }
     });
+    
     if (response.ok) {
       const data = await response.json();
       setClubEvents(data);
-    } else {
-      console.error('Error fetching club events');
     }
   } catch (err) {
-    console.error("Error fetching club events:", err);
+    console.error("Club events error:", err);
+  } finally {
+    setClubEventsLoading(false);
   }
-  setLoading(false);
 };
 
 export default fetchClubEvents;
+

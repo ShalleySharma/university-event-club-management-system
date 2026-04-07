@@ -279,7 +279,8 @@ const TeacherDashboard = ({ user }) => {
       const data = await response.json();
       if (response.ok) {
         setSuccess("Club deleted successfully!");
-        fetchMyClubs();
+        // Optimistic UI update - filter out deleted club
+        setMyClubs(prevClubs => prevClubs.filter(club => club._id !== clubId));
         setTimeout(() => setSuccess(""), 3000);
       } else {
         setError(data.message || "Failed to delete club");
@@ -288,6 +289,7 @@ const TeacherDashboard = ({ user }) => {
       setError("Network error. Please try again.");
     }
   };
+
 
   const handleViewClub = async (club) => {
     setSelectedClub(club);
@@ -657,6 +659,7 @@ const TeacherDashboard = ({ user }) => {
                 <th>Date</th>
                 <th>Time</th>
                 <th>Location</th>
+                <th>Approval</th>
                 <th>Participants</th>
                 <th>Actions</th>
               </tr>
@@ -669,6 +672,7 @@ const TeacherDashboard = ({ user }) => {
                   <td>{event.date}</td>
                   <td>{event.time}</td>
                   <td>{event.location}</td>
+                  <td><span className={`status-badge status-${event.approvalStatus || 'pending'}`}>{event.approvalStatus || 'Pending'}</span></td>
                   <td>{event.registrationCount || 0}</td>
                   <td className="actions-cell">
                     <button className="teacher-btn-view" onClick={() => handleViewEvent(event)}>View</button>
