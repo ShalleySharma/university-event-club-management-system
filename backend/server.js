@@ -13,9 +13,10 @@ require("./config/passport");
 const app = express();
 
 app.use(cors({
-  origin: "http://localhost:3000",
+  origin: process.env.FRONTEND_URLS ? process.env.FRONTEND_URLS.split(',') : ["http://localhost:3000"],
   credentials: true
 }));
+
 
 // 🚨 BULLETPROOF DEBUG LOGGING - ALL REQUESTS
 app.use((req, res, next) => {

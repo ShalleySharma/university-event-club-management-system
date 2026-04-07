@@ -42,7 +42,7 @@ passport.use(
     {
       clientID: process.env.AZURE_CLIENT_ID,
       clientSecret: process.env.MICROSOFT_CLIENT_SECRET,
-      callbackURL: "http://localhost:5000/api/auth/microsoft/callback",
+      callbackURL: (process.env.BACKEND_URL || 'http://localhost:5000') + "/api/auth/microsoft/callback",
       tenant: tenantId,
       authorizationURL: `https://login.microsoftonline.com/${tenantId}/oauth2/v2.0/authorize`,
       tokenURL: `https://login.microsoftonline.com/${tenantId}/oauth2/v2.0/token`,

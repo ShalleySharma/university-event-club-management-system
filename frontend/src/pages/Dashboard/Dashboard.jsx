@@ -21,7 +21,8 @@ const Dashboard = () => {
       return;
     }
 
-    fetch("http://localhost:5000/api/me", {
+    const apiUrl = process.env.REACT_APP_API_URL || (window.location.hostname === 'localhost' ? 'http://localhost:5000' : 'https://university-event-club-management-system.onrender.com');
+    fetch(`${apiUrl}/api/me`, {
       headers: {
         'Authorization': `Bearer ${token}`
       },
@@ -61,7 +62,8 @@ const Dashboard = () => {
   const checkConvenerStatus = (token, email) => {
     if (!email) return;
     
-    fetch("http://localhost:5000/api/clubs/check-convener", {
+    const apiUrl = process.env.REACT_APP_API_URL || (window.location.hostname === 'localhost' ? 'http://localhost:5000' : 'https://university-event-club-management-system.onrender.com');
+    fetch(`${apiUrl}/api/clubs/check-convener`, {
       headers: {
         'Authorization': `Bearer ${token}`
       }
@@ -84,8 +86,9 @@ const Dashboard = () => {
   };
 
   const handleLogout = async () => {
+    const apiUrl = process.env.REACT_APP_API_URL || (window.location.hostname === 'localhost' ? 'http://localhost:5000' : 'https://university-event-club-management-system.onrender.com');
     try {
-      await fetch("http://localhost:5000/auth/logout", {
+      await fetch(`${apiUrl}/auth/logout`, {
         credentials: "include"
       });
     } catch (error) {

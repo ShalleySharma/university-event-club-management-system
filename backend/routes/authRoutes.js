@@ -16,7 +16,7 @@ router.get("/microsoft", passport.authenticate("microsoft", {
 
 // Microsoft OAuth callback handler
 router.get("/microsoft/callback", 
-  passport.authenticate("microsoft", { failureRedirect: "http://localhost:3000/login?error=auth_failed" }),
+  passport.authenticate("microsoft", { failureRedirect: (process.env.FRONTEND_URL || 'http://localhost:3000') + "/login?error=auth_failed" }),
   async (req, res) => {
     try {
       const user = req.user;
@@ -29,10 +29,10 @@ router.get("/microsoft/callback",
       );
 
       // Redirect to frontend with token
-      res.redirect(`http://localhost:3000/auth/success?token=${token}&role=${user.role}`);
+      res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:3000'}/auth/success?token=${token}&role=${user.role}`);
     } catch (err) {
       console.error("OAuth Callback Error:", err);
-      res.redirect("http://localhost:3000/login?error=auth_failed");
+      res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:3000'}/login?error=auth_failed`);
     }
   }
 );

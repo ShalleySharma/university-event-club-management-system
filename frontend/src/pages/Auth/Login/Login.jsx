@@ -12,7 +12,8 @@ const Login = () => {
   const navigate = useNavigate();
 
   const handleMicrosoftLogin = () => {
-    window.location.href = "http://localhost:5000/api/auth/microsoft";
+    const apiUrl = process.env.REACT_APP_API_URL || 'https://university-event-club-management-system.onrender.com';
+    window.location.href = `${apiUrl}/api/auth/microsoft`;
   };
 
   const handleEmailLogin = async (e) => {
@@ -24,7 +25,8 @@ const Login = () => {
     console.log("Sending login request:", loginData);
 
     try {
-      const response = await fetch("http://localhost:5000/api/auth/login", {
+      const apiUrl = process.env.REACT_APP_API_URL || 'https://university-event-club-management-system.onrender.com';
+      const response = await fetch(`${apiUrl}/api/auth/login`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json"
