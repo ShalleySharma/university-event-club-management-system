@@ -17,13 +17,20 @@ app.use(cors({
   credentials: true
 }));
 
-// Debug middleware to log all requests
+// 🚨 BULLETPROOF DEBUG LOGGING - ALL REQUESTS
 app.use((req, res, next) => {
-  console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);
-  console.log("Headers:", req.headers);
-  if (req.body && Object.keys(req.body).length > 0) {
-    console.log("Body:", req.body);
-  }
+  const timestamp = new Date().toISOString();
+  console.log(`🚨 [${timestamp}] ${req.method} ${req.url}`);
+  console.log("🔑 Auth:", req.headers.authorization?.substring(0, 50) + '...');
+  console.log("📦 Body:", req.body);
+  console.log("---");
+  next();
+});
+
+// 🚨 SPECIFIC REGISTER ROUTE LOGGING
+app.use('/api/events/:eventId/register', (req, res, next) => {
+  console.log('🎯 REGISTER ROUTE HIT:', req.params.eventId);
+  console.log('🎯 Full URL:', req.originalUrl);
   next();
 });
 

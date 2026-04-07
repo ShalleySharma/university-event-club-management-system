@@ -6,6 +6,42 @@ const Club = require('../models/Club');
 const mongoose = require('mongoose');
 
 // Get user's meetings (teacher, club_head, student, coordinator)
+const getStudentMeetings = async (req, res) => {
+  try {
+    const user = req.user;
+    if (user.role !== 'student') {
+      return res.status(403).json({ message: 'Student access only' });
+    }
+
+    const userId = user.id;
+    
+    // Get student's joined clubs only
+    const clubs = await Club.find({ members: userId }).select("_id").lean();
+    const clubIds = clubs.map(c => c._id);
+
+    if (clubIds.length === 0) {
+      return res.json([]);
+    }
+
+    const query = {
+      club: { $in: clubIds },
+      status: { $ne: 'cancelled' }
+    };
+
+    const meetings = await Meeting.find(query)
+      .populate('club', 'name')
+      .populate('createdBy', 'name email')
+      .populate('attendances', 'student status')
+      .sort({ date: -1 });
+
+    console.log(`Student ${user.email} - ${meetings.length} meetings from ${clubIds.length} joined clubs`);
+    res.json(meetings);
+  } catch (err) {
+    console.error('getStudentMeetings error:', err);
+    res.status(500).json({ message: err.message });
+  }
+};
+
 const getMyMeetings = async (req, res) => {
   try {
     const user = req.user || {};
@@ -241,6 +277,43 @@ const getMeetingAttendanceStats = async (req, res) => {
   }
 };
 
+// MARK ATTENDANCE VIA BUTTON (new - for frontend dashboard "Mark Attendance")
+const markMeetingAttendance = async (req, res) => {
+  try {
+    const { id: meetingId } = req.params;
+    const meeting = await Meeting.findById(meetingId);
+    if (!meeting) {
+      return res.status(404).json({ message: 'Meeting not found' });
+    }
+
+    // Check if already attended
+    const existing = await MeetingAttendance.findOne({
+      meeting: meetingId,
+      student: req.user.id
+    });
+    if (existing) {
+      return res.status(400).json({ message: 'Already marked attendance' });
+    }
+
+    const attendance = new MeetingAttendance({
+      meeting: meetingId,
+      student: req.user.id,
+      status: 'scanned',
+      scanTime: new Date()
+      // scannedBy: null (button attendance, no QR coordinator scan)
+    });
+
+    await attendance.save();
+    meeting.attendances.push(attendance._id);
+    await meeting.save();
+
+    res.json({ message: 'Attendance marked successfully (pending approval)', attendance });
+  } catch (err) {
+    console.error('markMeetingAttendance error:', err);
+    res.status(500).json({ message: err.message });
+  }
+};
+
 module.exports = {
   getMyMeetings,
   createMeeting,
@@ -248,5 +321,6 @@ module.exports = {
   markTentativeAttendance,
   approveAttendance,
   rejectAttendance,
-  getMeetingAttendanceStats
+  getMeetingAttendanceStats,
+  markMeetingAttendance  // NEW
 };

@@ -521,15 +521,15 @@
 }
 
 .admin-club-logo {
-  width: 60px;
-  height: 60px;
+  width: 70px;
+  height: 70px;
   border-radius: 12px;
   background: var(--admin-light-bg);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 30px;
-  margin-bottom: 15px;
+  font-size: 32px;
+  margin-bottom: 12px;
 }
 
 .admin-club-logo img {

@@ -279,7 +279,8 @@ const TeacherDashboard = ({ user }) => {
       const data = await response.json();
       if (response.ok) {
         setSuccess("Club deleted successfully!");
-        fetchMyClubs();
+        // Optimistic UI update - filter out deleted club
+        setMyClubs(prevClubs => prevClubs.filter(club => club._id !== clubId));
         setTimeout(() => setSuccess(""), 3000);
       } else {
         setError(data.message || "Failed to delete club");
@@ -288,6 +289,7 @@ const TeacherDashboard = ({ user }) => {
       setError("Network error. Please try again.");
     }
   };
+
 
   const handleViewClub = async (club) => {
     setSelectedClub(club);

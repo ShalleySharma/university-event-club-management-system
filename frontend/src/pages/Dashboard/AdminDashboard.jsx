@@ -254,6 +254,9 @@ const AdminDashboard = ({ user }) => {
       
       if (response.ok) {
         setSuccess("Club deleted successfully!");
+        // Optimistic UI update
+        setAllClubs(prev => prev.filter(club => club._id !== clubId));
+        setPendingClubs(prev => prev.filter(club => club._id !== clubId));
         fetchDashboardData();
         setTimeout(() => setSuccess(""), 3000);
       } else {
@@ -263,6 +266,7 @@ const AdminDashboard = ({ user }) => {
       setError("Network error. Please try again.");
     }
   };
+
 
   const handleAssignClubHead = async (userId) => {
     if (!window.confirm("Assign this student as Club Head?")) return;
