@@ -69,10 +69,10 @@ const ClubHeadDashboard = ({ user }) => {
     setLoading(true);
     try {
       const token = localStorage.getItem("token");
-      const clubsResponse = await fetch("http://localhost:5000/api/clubs/my-clubs", {
+      const clubsResponse = await fetch(`${process.env.REACT_APP_API_URL || 'https://university-event-club-management-system.onrender.com'}/api/clubs/my-clubs`, {
         headers: { Authorization: `Bearer ${token}` }
       });
-      const requestsResponse = await fetch("http://localhost:5000/api/clubs/role-requests", {
+      const requestsResponse = await fetch(`${process.env.REACT_APP_API_URL || 'https://university-event-club-management-system.onrender.com'}/api/clubs/role-requests`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       
@@ -91,7 +91,7 @@ const ClubHeadDashboard = ({ user }) => {
     setLoading(true);
     try {
       const token = localStorage.getItem("token");
-      const response = await fetch("http://localhost:5000/api/clubs/my-clubs", {
+      const response = await fetch(`${process.env.REACT_APP_API_URL || 'https://university-event-club-management-system.onrender.com'}/api/clubs/my-clubs`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       if (response.ok) setMyClubs(await response.json());
@@ -105,7 +105,7 @@ const ClubHeadDashboard = ({ user }) => {
     setLoading(true);
     try {
       const token = localStorage.getItem("token");
-      const response = await fetch("http://localhost:5000/api/events/club-head-events", {
+      const response = await fetch(`${process.env.REACT_APP_API_URL || 'https://university-event-club-management-system.onrender.com'}/api/events/club-head-events`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       if (response.ok) {
@@ -123,7 +123,7 @@ const ClubHeadDashboard = ({ user }) => {
     setLoading(true);
     try {
       const token = localStorage.getItem("token");
-      const response = await fetch("http://localhost:5000/api/meetings/my-meetings", {
+      const response = await fetch(`${process.env.REACT_APP_API_URL || 'https://university-event-club-management-system.onrender.com'}/api/meetings/my-meetings`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       if (response.ok) setMeetings(await response.json());
@@ -137,7 +137,7 @@ const ClubHeadDashboard = ({ user }) => {
     setLoading(true);
     try {
       const token = localStorage.getItem("token");
-      const response = await fetch("http://localhost:5000/api/clubs/role-requests", {
+      const response = await fetch(`${process.env.REACT_APP_API_URL || 'https://university-event-club-management-system.onrender.com'}/api/clubs/role-requests`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       if (response.ok) setRoleRequests(await response.json());
@@ -152,7 +152,7 @@ const ClubHeadDashboard = ({ user }) => {
     setSuccess("");
     try {
       const token = localStorage.getItem("token");
-      const response = await fetch(`http://localhost:5000/api/clubs/role-requests/${requestId}/review`, {
+      const response = await fetch(`${process.env.REACT_APP_API_URL || 'https://university-event-club-management-system.onrender.com'}/api/clubs/role-requests/${requestId}/review`, {
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",
@@ -176,7 +176,7 @@ const ClubHeadDashboard = ({ user }) => {
     
     try {
       const token = localStorage.getItem("token");
-      const response = await fetch("http://localhost:5000/api/events", {
+      const response = await fetch(`${process.env.REACT_APP_API_URL || 'https://university-event-club-management-system.onrender.com'}/api/events`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -200,7 +200,7 @@ const ClubHeadDashboard = ({ user }) => {
     setShowClubDetails(true);
     try {
       const token = localStorage.getItem("token");
-      const response = await fetch(`http://localhost:5000/api/clubs/${club._id}/details`, {
+      const response = await fetch(`${process.env.REACT_APP_API_URL || 'https://university-event-club-management-system.onrender.com'}/api/clubs/${club._id}/details`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       if (response.ok) setClubDetails(await response.json());
@@ -319,4 +319,3 @@ const ClubHeadDashboard = ({ user }) => {
 };
 
 export default ClubHeadDashboard;
-

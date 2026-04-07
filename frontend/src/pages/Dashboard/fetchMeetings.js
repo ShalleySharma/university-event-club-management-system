@@ -2,7 +2,7 @@ const fetchMeetings = async (setMeetings, setLoading) => {
   setLoading(true);
   try {
     const token = localStorage.getItem("token");
-    const response = await fetch("http://localhost:5000/api/meetings/my-meetings", {
+    const response = await fetch(`${process.env.REACT_APP_API_URL || 'https://university-event-club-management-system.onrender.com'}/api/meetings/my-meetings`, {
       headers: { Authorization: `Bearer ${token}` }
     });
     if (response.ok) {

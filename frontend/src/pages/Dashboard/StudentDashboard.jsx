@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useContext } from "react";
 import { useNavigate } from "react-router-dom";
 import { AuthContext } from "../../context/AuthContext";
-import "./StudentDashboard_Light.css";  // Pure light theme matching teacher club UI
+import "./StudentDashboard_Light.css";
 import fetchStudentMeetings from './fetchStudentMeetings';
 import renderMeetings from './renderMeetings';
 
@@ -11,7 +11,7 @@ const StudentDashboard = ({ user }) => {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [activeSection, setActiveSection] = useState("dashboard");
   
-  // Dashboard state - SAME as Teacher
+  // Dashboard state
   const [dashboardStats, setDashboardStats] = useState({
     totalClubs: 0,
     totalEvents: 0,
@@ -24,7 +24,7 @@ const StudentDashboard = ({ user }) => {
   const [myClubs, setMyClubs] = useState([]);
   const [loading, setLoading] = useState(true);
   
-  // Student-specific states (no create modals)
+  // Student-specific states
   const [allEvents, setAllEvents] = useState([]);
   const [joinedClubs, setJoinedClubs] = useState([]);
   const [clubEvents, setClubEvents] = useState([]);
@@ -36,11 +36,10 @@ const StudentDashboard = ({ user }) => {
 
   const handleJoinMeeting = (meeting) => {
     console.log('Joining meeting:', meeting._id);
-    // TODO: POST /api/meetings/:id/attend
     alert(`✅ Joined ${meeting.title}! Attendance recorded.`);
   };
 
-  // Student modals (view only)
+  // Student modals
   const [showClubDetailsModal, setShowClubDetailsModal] = useState(false);
   const [selectedClub, setSelectedClub] = useState(null);
   const [clubDetails, setClubDetails] = useState(null);
@@ -48,8 +47,7 @@ const StudentDashboard = ({ user }) => {
   const [showEventDetailsModal, setShowEventDetailsModal] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState(null);
 
-useEffect(() => {
-    // Always fetch joined clubs for dashboard preview + clubs section
+  useEffect(() => {
     fetchJoinedClubs();
     fetchStudentClubs();
     
@@ -66,16 +64,16 @@ useEffect(() => {
     }
   }, [activeSection]);
 
-  // ==================== STUDENT FETCH ====================
+  // Student fetch functions with API_URL
   const fetchStudentClubs = async () => {
     try {
       const token = localStorage.getItem("token");
-      const response = await fetch("http://localhost:5000/api/clubs", {
+      const response = await fetch(`${process.env.REACT_APP_API_URL || 'https://university-event-club-management-system.onrender.com'}/api/clubs`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       if (response.ok) {
         const data = await response.json();
-        setMyClubs(data.slice(0, 5)); // Show 5 recent
+        setMyClubs(data.slice(0, 5));
         setLoading(false);
       }
     } catch (err) {
@@ -86,7 +84,7 @@ useEffect(() => {
   const fetchDashboardStats = async () => {
     try {
       const token = localStorage.getItem("token");
-      const response = await fetch("http://localhost:5000/api/events/student/stats", {
+      const response = await fetch(`${process.env.REACT_APP_API_URL || 'https://university-event-club-management-system.onrender.com'}/api/events/student/stats`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       if (response.ok) {
@@ -94,7 +92,7 @@ useEffect(() => {
         setDashboardStats({
           totalClubs: data.joinedClubs,
           totalEvents: data.registeredEvents,
-          totalMembers: data.joinedClubs * 10, // Mock
+          totalMembers: data.joinedClubs * 10,
           upcomingEvents: data.upcomingEvents?.length || 0
         });
       }
@@ -106,7 +104,7 @@ useEffect(() => {
   const fetchAllClubs = async () => {
     try {
       const token = localStorage.getItem("token");
-      const response = await fetch("http://localhost:5000/api/clubs", {
+      const response = await fetch(`${process.env.REACT_APP_API_URL || 'https://university-event-club-management-system.onrender.com'}/api/clubs`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       if (response.ok) {
@@ -121,7 +119,7 @@ useEffect(() => {
   const fetchJoinedClubs = async () => {
     try {
       const token = localStorage.getItem("token");
-      const response = await fetch("http://localhost:5000/api/clubs/student/my-clubs", {
+      const response = await fetch(`${process.env.REACT_APP_API_URL || 'https://university-event-club-management-system.onrender.com'}/api/clubs/student/my-clubs`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       if (response.ok) {
@@ -136,7 +134,7 @@ useEffect(() => {
   const fetchAllEvents = async () => {
     try {
       const token = localStorage.getItem("token");
-      const response = await fetch("http://localhost:5000/api/events/all", {
+      const response = await fetch(`${process.env.REACT_APP_API_URL || 'https://university-event-club-management-system.onrender.com'}/api/events/all`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       if (response.ok) {
@@ -151,7 +149,7 @@ useEffect(() => {
   const fetchMeetings = async () => {
     try {
       const token = localStorage.getItem("token");
-      const response = await fetch("http://localhost:5000/api/meetings", {
+      const response = await fetch(`${process.env.REACT_APP_API_URL || 'https://university-event-club-management-system.onrender.com'}/api/meetings`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       if (response.ok) {
@@ -163,14 +161,14 @@ useEffect(() => {
     }
   };
 
-  // ==================== STUDENT HANDLERS ====================
+  // Handlers with API_URL
   const handleViewClub = async (club) => {
     setSelectedClub(club);
     setShowClubDetailsModal(true);
     setDetailsLoading(true);
     try {
       const token = localStorage.getItem("token");
-      const response = await fetch(`http://localhost:5000/api/clubs/${club._id}/details`, {
+      const response = await fetch(`${process.env.REACT_APP_API_URL || 'https://university-event-club-management-system.onrender.com'}/api/clubs/${club._id}/details`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       if (response.ok) {
@@ -184,15 +182,10 @@ useEffect(() => {
     }
   };
 
-  const handleViewEvent = (event) => {
-    setSelectedEvent(event);
-    setShowEventDetailsModal(true);
-  };
-
   const handleJoinClub = async (clubId) => {
     try {
       const token = localStorage.getItem("token");
-      const response = await fetch(`http://localhost:5000/api/clubs/${clubId}/join`, {
+      const response = await fetch(`${process.env.REACT_APP_API_URL || 'https://university-event-club-management-system.onrender.com'}/api/clubs/${clubId}/join`, {
         method: "POST",
         headers: { Authorization: `Bearer ${token}` }
       });
@@ -210,7 +203,7 @@ useEffect(() => {
   const handleRegisterEvent = async (eventId) => {
     try {
       const token = localStorage.getItem("token");
-      const response = await fetch(`http://localhost:5000/api/events/${eventId}/register`, {
+      const response = await fetch(`${process.env.REACT_APP_API_URL || 'https://university-event-club-management-system.onrender.com'}/api/events/${eventId}/register`, {
         method: "POST",
         headers: { Authorization: `Bearer ${token}` }
       });
@@ -224,10 +217,9 @@ useEffect(() => {
     }
   };
 
-  // ==================== TEACHER RENDER (IDENTICAL UI) ====================
-const renderMyClubsSection = () => (
+  // Render functions (unchanged UI)
+  const renderMyClubsSection = () => (
     <section className="teacher-clubs-section">
-      {/* Joined Clubs - Top Section */}
       {joinedClubs.length > 0 && (
         <>
           <div className="teacher-section-header">
@@ -256,7 +248,6 @@ const renderMyClubsSection = () => (
         </>
       )}
 
-      {/* Explore Clubs */}
       <div className="teacher-section-header">
         <h3>🏛 Explore Clubs</h3>
         <span className="teacher-club-count">{myClubs.length} available</span>
@@ -344,7 +335,6 @@ const renderMyClubsSection = () => (
       )}
     </section>
   );
-
 
   const renderProfileSection = () => (
     <section className="teacher-profile-section">
@@ -435,7 +425,7 @@ const renderMyClubsSection = () => (
           {success && <div className="teacher-success-message">{success}</div>}
           {error && <div className="teacher-error-message">{error}</div>}
 
-{activeSection === "dashboard" && (
+          {activeSection === "dashboard" && (
             <section className="teacher-dashboard-section">
               <div className="teacher-welcome-banner">
                 <div className="teacher-welcome-content">
@@ -473,7 +463,6 @@ const renderMyClubsSection = () => (
                 </div>
               </div>
 
-              {/* Recent Joined Clubs Preview */}
               {joinedClubs.length > 0 && (
                 <div className="teacher-recent-section">
                   <div className="teacher-section-header">
@@ -515,12 +504,8 @@ const renderMyClubsSection = () => (
           {activeSection === "profile" && renderProfileSection()}
         </div>
       </main>
-
-      {/* Modals hidden for student - no create */}
-
     </div>
   );
 };
 
 export default StudentDashboard;
-
