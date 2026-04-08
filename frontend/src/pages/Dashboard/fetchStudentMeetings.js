@@ -2,7 +2,8 @@ const fetchStudentMeetings = async (setMeetings, setMeetingsLoading) => {
   try {
     setMeetingsLoading(true);
     const token = localStorage.getItem("token");
-    const response = await fetch('http://localhost:5000/api/meetings', {
+    const apiBase = process.env.REACT_APP_API_URL || 'https://university-event-club-management-system.onrender.com';
+    const response = await fetch(`${apiBase}/api/meetings`, {
       headers: { Authorization: `Bearer ${token}` }
     });
     
@@ -18,4 +19,3 @@ const fetchStudentMeetings = async (setMeetings, setMeetingsLoading) => {
 };
 
 export default fetchStudentMeetings;
-

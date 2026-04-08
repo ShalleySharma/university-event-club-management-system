@@ -21,8 +21,7 @@ const Dashboard = () => {
       return;
     }
 
-    const apiUrl = process.env.REACT_APP_API_URL || (window.location.hostname === 'localhost' ? 'http://localhost:5000' : 'https://university-event-club-management-system.onrender.com');
-    fetch(`${apiUrl}/api/me`, {
+    const apiUrl = process.env.REACT_APP_API_URL || 'https://university-event-club-management-system.onrender.com';\n    fetch(`${apiUrl}/api/me`, {
       headers: {
         'Authorization': `Bearer ${token}`
       },
@@ -62,8 +61,7 @@ const Dashboard = () => {
   const checkConvenerStatus = (token, email) => {
     if (!email) return;
     
-    const apiUrl = process.env.REACT_APP_API_URL || (window.location.hostname === 'localhost' ? 'http://localhost:5000' : 'https://university-event-club-management-system.onrender.com');
-    fetch(`${apiUrl}/api/clubs/check-convener`, {
+    const apiUrl = process.env.REACT_APP_API_URL || 'https://university-event-club-management-system.onrender.com';\n    fetch(`${apiUrl}/api/clubs/check-convener`, {
       headers: {
         'Authorization': `Bearer ${token}`
       }

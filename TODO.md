@@ -1,20 +1,15 @@
-# Fix Production Microsoft Login ✅
+# GitHub Push Plan for Microsoft OAuth Fixes
 
-## Completed:
-- ✅ Created .env files (backend/frontend)
-- ✅ Updated CORS (server.js)
-- ✅ Fixed backend callbackURL (passport.js)
-- ✅ Fixed backend redirects (authRoutes.js) 
-- ✅ Fixed frontend login URLs (Login.jsx)
-- ✅ Fixed authConfig.js redirectUri
+## Current Status: Ready to Push ✅
 
-## Final Steps:
-1. Update Azure AD App Registration:
-   - Add redirect URI: `https://university-event-club-management-system.onrender.com/api/auth/microsoft/callback`
-2. Update .env files with **your actual Vercel URL**:
-   - backend/.env: `FRONTEND_URLS=https://your-vercel-app.vercel.app,http://localhost:3000`
-3. Commit & push: `git add . && git commit -m "fix: prod microsoft login env vars" && git push`
-4. **Redeploy** backend (Render) & frontend (Vercel)
-5. Test Microsoft login on Vercel!
+### Git Push Steps:
+- [ ] Step 1: Stage all changes (`git add .`)
+- [ ] Step 2: Commit changes (`git commit -m "Complete Microsoft OAuth production fixes (TODO steps 1-6)"`)
+- [ ] Step 3: Push to origin/main (`git push origin main`)
+- [ ] Step 4: Verify on GitHub
 
-**Note:** Update Vercel URL in backend/.env FRONTEND_URLS after deployment.
+### Post-Push:
+1. Deploy backend to Render with env vars from README.md
+2. Deploy frontend to Vercel with REACT_APP_API_URL
+3. Test Microsoft login end-to-end
+4. Update TODO.md with deployment status

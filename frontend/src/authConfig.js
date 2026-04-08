@@ -1,41 +1,8 @@
-export const msalConfig = {
-  auth: {
-    clientId: process.env.REACT_APP_AZURE_CLIENT_ID || "YOUR_CLIENT_ID",
-    authority: `https://login.microsoftonline.com/${process.env.REACT_APP_AZURE_TENANT_ID || "YOUR_TENANT_ID"}`,
-    redirectUri: (process.env.REACT_APP_BACKEND_URL || 'http://localhost:5000') + "/auth/microsoft/callback"
-  },
-  cache: {
-    cacheLocation: "sessionStorage",
-    storeAuthStateInCookie: false
-  }
-};
+export const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://university-event-club-management-system.onrender.com';
 
-export const loginRequest = {
-  scopes: ["User.Read"]
-};
+export const getApiUrl = (path) => `${API_BASE_URL}${path.startsWith('/') ? '' : '/'}${path}`;
 
-// Microsoft OAuth callback handler for frontend
-export const handleMsalCallback = (msalInstance) => {
-  return msalInstance.handleRedirectPromise().then(async (tokenResponse) => {
-    if (tokenResponse) {
-      // Token response contains access token
-      const account = tokenResponse.account;
-      
-      // Send the token to backend for verification and session creation
-      const response = await fetch("https://university-event-club-management-system.onrender.com/api/auth/microsoft", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-          accessToken: tokenResponse.accessToken,
-          account: account
-        })
-      });
-
-      const data = await response.json();
-      return data;
-    }
-    return null;
-  });
-};
+// For local dev
+if (process.env.NODE_ENV === 'development') {
+  console.log('Using API_BASE_URL:', API_BASE_URL);
+}

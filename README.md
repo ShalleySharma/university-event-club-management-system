@@ -125,9 +125,34 @@ campus-connect/
 
 ## Deployment
 
-- **Backend**: Render/Heroku/Vercel + MongoDB Atlas
-- **Frontend**: Vercel/Netlify/Vercel
-- Update MSAL config for production domain
+### Backend (Render)
+1. Fork repo, connect backend/ to Render Web Service
+2. Set Environment Variables (Dashboard > Environment):
+   ```
+   MONGODB_URI=your_atlas_connection_string
+   AZURE_CLIENT_ID=your_azure_app_id
+   AZURE_TENANT_ID=common (or your tenant)
+   MICROSOFT_CLIENT_SECRET=your_secret
+   SESSION_SECRET=strong_random_secret
+   JWT_SECRET=strong_jwt_secret
+   BACKEND_URL=https://university-event-club-management-system.onrender.com  # Your Render domain
+   FRONTEND_URLS=https://university-event-club-management-sy.vercel.app/,https://university-event-club-management-sy.vercel.app/*
+   ```
+3. Deploy!
+
+### Frontend (Vercel)
+1. Connect frontend/ to Vercel
+2. Set Env Var: `REACT_APP_API_URL=https://university-event-club-management-system.onrender.com`
+3. Deploy!
+
+**Critical:** Update Azure AD App Redirect URI to: `https://university-event-club-management-system.onrender.com/api/auth/microsoft/callback`
+
+### Local Development
+```
+BACKEND_URL=http://localhost:5000
+FRONTEND_URLS=http://localhost:3000
+REACT_APP_API_URL=http://localhost:5000
+```
 
 ## Contributing
 
@@ -145,3 +170,4 @@ ISC License - see [LICENSE](LICENSE) (create if missing)
 
 Shalley Sharma - [@shalley](https://twitter.com/shalley)  
 Project Link: [https://github.com/ShalleySharma/university-event-club-management-system](https://github.com/ShalleySharma/university-event-club-management-system)
+

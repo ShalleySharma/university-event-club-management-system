@@ -4,6 +4,8 @@ import { AuthContext } from "../../context/AuthContext";
 import "./ClubHeadDashboard.css";
 import fetchMeetings from './fetchMeetings';
 
+const apiBase = process.env.REACT_APP_API_URL || 'https://university-event-club-management-system.onrender.com';
+
 const ClubHeadConvenerDashboard = ({ user }) => {
   const navigate = useNavigate();
   const { logout } = useContext(AuthContext);
@@ -66,11 +68,11 @@ const ClubHeadConvenerDashboard = ({ user }) => {
     try {
       const token = localStorage.getItem("token");
       
-      const clubsResponse = await fetch("http://localhost:5000/api/clubs/my-clubs", {
+      const clubsResponse = await fetch(`${apiBase}/api/clubs/my-clubs`, {
         headers: { Authorization: `Bearer ${token}` }
       });
 
-      const requestsResponse = await fetch("http://localhost:5000/api/clubs/role-requests", {
+      const requestsResponse = await fetch(`${apiBase}/api/clubs/role-requests`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       
@@ -93,7 +95,7 @@ const ClubHeadConvenerDashboard = ({ user }) => {
     setLoading(true);
     try {
       const token = localStorage.getItem("token");
-      const response = await fetch("http://localhost:5000/api/clubs/my-clubs", {
+      const response = await fetch(`${apiBase}/api/clubs/my-clubs`, {
         headers: { Authorization: `Bearer ${token}` }
       });
 
@@ -111,7 +113,7 @@ const ClubHeadConvenerDashboard = ({ user }) => {
     setLoading(true);
     try {
       const token = localStorage.getItem("token");
-      const response = await fetch("http://localhost:5000/api/events/club-head-events", {
+      const response = await fetch(`${apiBase}/api/events/club-head-events`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       if (response.ok) {
@@ -127,11 +129,11 @@ const ClubHeadConvenerDashboard = ({ user }) => {
     setLoading(false);
   };
 
-  const fetchMeetings = async () => {
-    setLoading(true);
+  const fetchMeetings = async (setMeetings, setMeetingsLoading) => {
+    setMeetingsLoading(true);
     try {
       const token = localStorage.getItem("token");
-      const response = await fetch("http://localhost:5000/api/meetings/my-meetings", {
+      const response = await fetch(`${apiBase}/api/meetings/my-meetings`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       if (response.ok) {
@@ -143,14 +145,14 @@ const ClubHeadConvenerDashboard = ({ user }) => {
     } catch (err) {
       console.error("Error fetching meetings:", err);
     }
-    setLoading(false);
+    setMeetingsLoading(false);
   };
 
   const fetchRoleRequests = async () => {
     setLoading(true);
     try {
       const token = localStorage.getItem("token");
-      const response = await fetch("http://localhost:5000/api/clubs/role-requests", {
+      const response = await fetch(`${apiBase}/api/clubs/role-requests`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       if (response.ok) {
@@ -168,7 +170,7 @@ const ClubHeadConvenerDashboard = ({ user }) => {
     setSuccess("");
     try {
       const token = localStorage.getItem("token");
-      const response = await fetch(`http://localhost:5000/api/clubs/role-requests/${requestId}/review`, {
+      const response = await fetch(`${apiBase}/api/clubs/role-requests/${requestId}/review`, {
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",
@@ -201,7 +203,7 @@ const ClubHeadConvenerDashboard = ({ user }) => {
 
     try {
       const token = localStorage.getItem("token");
-      const response = await fetch("http://localhost:5000/api/events", {
+      const response = await fetch(`${apiBase}/api/events`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -240,7 +242,7 @@ const ClubHeadConvenerDashboard = ({ user }) => {
     setShowClubDetails(true);
     try {
       const token = localStorage.getItem("token");
-      const response = await fetch(`http://localhost:5000/api/clubs/${club._id}/details`, {
+      const response = await fetch(`${apiBase}/api/clubs/${club._id}/details`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       if (response.ok) {
@@ -294,14 +296,12 @@ const ClubHeadConvenerDashboard = ({ user }) => {
     return <span className="club-logo-emoji">{getClubLogo(club.name)}</span>;
   };
 
-  // ... rest of render functions (renderDashboard, renderClubs, renderEvents, renderMeetingsSection, renderRequests, renderProfile, renderClubDetailsModal, renderCreateEventModal)
-  
   return (
     <div className="student-dashboard">
-      {/* ... full JSX render as before ... */}
+      <h1>Club Head / Convener Dashboard</h1>
+      <p>Dashboard functionality to be completed.</p>
     </div>
   );
 };
 
 export default ClubHeadConvenerDashboard;
-

@@ -1,11 +1,13 @@
 import React from 'react';
 
 const RenderMeetings = ({ meetings = [], loading = false, userRole = 'student' }) => {
+  const apiBase = process.env.REACT_APP_API_URL || 'https://university-event-club-management-system.onrender.com';
+
   const openAttendanceModal = (meeting) => {
     const confirmed = window.confirm(`📱 Mark attendance for "${meeting.title}"?\n\nThis will record your attendance for this meeting.`);
     if (confirmed) {
       const token = localStorage.getItem('token');
-      fetch(`http://localhost:5000/api/meetings/${meeting._id}/attend`, {
+      fetch(`${apiBase}/api/meetings/${meeting._id}/attend`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -110,4 +112,3 @@ const RenderMeetings = ({ meetings = [], loading = false, userRole = 'student' }
 };
 
 export default RenderMeetings;
-
